@@ -1,0 +1,67 @@
+@model IEnumerable<BricksAndBooks.Models.Unit>
+
+@{
+    ViewData["Title"] = "Unit Management";
+    var accommodationId = ViewData["AccommodationId"] as int?;
+    var accommodationName = ViewData["AccommodationName"] as string;
+}
+
+<h2>@ViewData["Title"] - @accommodationName</h2>
+
+<p>
+    @if (User.IsInRole("Admin"))
+    {
+        <a asp-action="Create" asp-route-accommodationId="@accommodationId" class="btn btn-success">Create New Unit</a>
+    }
+    <a asp-controller="Accommodation" asp-action="Details" asp-route-id="@accommodationId" class="btn btn-light">Back to Accommodation</a>
+</p>
+
+<div class="table-responsive">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>
+                    @Html.DisplayNameFor(model => model.UnitNumber)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.Capacity)
+                </th>
+                <th>Unit type</th>
+                <th>
+                    @Html.DisplayNameFor(model => model.IsAvailable)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.CreatedAt)
+                </th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.UnitNumber)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Capacity)
+            </td>
+            <td>@item.OccupancyType</td>
+            <td>
+                @Html.DisplayFor(modelItem => item.IsAvailable)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.CreatedAt)
+            </td>
+            <td>
+                <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-info">Details</a>
+                @if (User.IsInRole("Admin"))
+                {
+                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-primary">Edit</a>
+                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-danger">Delete</a>
+                }
+            </td>
+        </tr>
+}
+        </tbody>
+    </table>
+</div>

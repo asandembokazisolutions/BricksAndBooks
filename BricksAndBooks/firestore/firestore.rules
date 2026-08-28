@@ -1,0 +1,165 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userDocument(uid) {
+      return get(/databases/$(database)/documents/users/$(uid));
+    }
+
+    function hasRole(roleName) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && userDocument(request.auth.uid).data.role == roleName;
+    }
+
+    function isAdmin() {
+      return hasRole('admin');
+    }
+
+    function isStaff() {
+      return hasRole('staff') || isAdmin();
+    }
+
+    function isFinancialOfficer() {
+      return hasRole('financialOfficer') || isAdmin();
+    }
+
+    function isOperationsStaff() {
+      return isStaff() || isFinancialOfficer();
+    }
+
+    match /settings/{documentId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    match /users/{userId} {
+      allow read: if signedIn() && (request.auth.uid == userId || isOperationsStaff());
+      allow create: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.role == 'student';
+      allow update: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.role == resource.data.role;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /accommodations/{accommodationId} {
+      allow read: if signedIn();
+      allow write: if isStaff();
+    }
+
+    match /units/{unitId} {
+      allow read: if signedIn();
+      allow write: if isStaff();
+    }
+
+    match /tariffs/{tariffId} {
+      allow read: if signedIn();
+      allow write: if isFinancialOfficer();
+    }
+
+    match /accommodationApplications/{applicationId} {
+      allow create: if signedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == 'pending';
+      allow read: if signedIn()
+        && (resource.data.userId == request.auth.uid || isStaff());
+      allow update, delete: if isStaff();
+    }
+
+    match /occupancies/{occupancyId} {
+      allow read: if signedIn()
+        && (resource.data.userId == request.auth.uid || isStaff());
+      allow write: if isStaff();
+    }
+
+    match /bills/{billId} {
+      allow read: if signedIn()
+        && (resource.data.userId == request.auth.uid || isFinancialOfficer());
+      allow write: if isFinancialOfficer();
+    }
+
+    match /payments/{paymentId} {
+      allow read: if signedIn()
+        && (resource.data.userId == request.auth.uid || isFinancialOfficer());
+      allow write: if isFinancialOfficer();
+    }
+
+    match /maintenanceRequests/{requestId} {
+      allow create: if signedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == 'submitted';
+      allow read: if signedIn()
+        && (resource.data.userId == request.auth.uid || isStaff());
+      allow update, delete: if isStaff();
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if signedIn()
+        && (resource.data.userId == request.auth.uid || isOperationsStaff());
+      allow update: if signedIn()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead', 'readAt']);
+      allow create, delete: if isOperationsStaff();
+    }
+
+    match /vehicles/{vehicleId} {
+      allow create: if signedIn()
+        && request.resource.data.userId == request.auth.uid;
+      allow read: if signedIn()
+        && (resource.data.userId == request.auth.uid || isStaff());
+      allow update, delete: if signedIn()
+        && ((resource.data.userId == request.auth.uid
+              && request.resource.data.userId == resource.data.userId)
+            || isStaff());
+    }
+
+    match /reviews/{reviewId} {
+      allow create: if signedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.isApproved == false;
+      allow read: if signedIn() && (resource.data.isApproved == true || isStaff());
+      allow update, delete: if isStaff();
+    }
+
+    match /chatThreads/{threadId} {
+      allow create: if signedIn()
+        && request.auth.uid in request.resource.data.participantIds;
+      allow read, update: if signedIn()
+        && request.auth.uid in resource.data.participantIds;
+      allow delete: if isStaff();
+
+      match /messages/{messageId} {
+        allow create: if signedIn()
+          && request.resource.data.senderUserId == request.auth.uid
+          && request.auth.uid in get(/databases/$(database)/documents/chatThreads/$(threadId)).data.participantIds;
+        allow read: if signedIn()
+          && request.auth.uid in get(/databases/$(database)/documents/chatThreads/$(threadId)).data.participantIds;
+        allow update: if signedIn()
+          && request.auth.uid in get(/databases/$(database)/documents/chatThreads/$(threadId)).data.participantIds
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead', 'readAt']);
+        allow delete: if false;
+      }
+    }
+
+    match /auditLogs/{auditLogId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /schemaMetadata/{documentId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

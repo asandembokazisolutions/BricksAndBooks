@@ -1,0 +1,63 @@
+@model IEnumerable<BricksAndBooks.Models.ViewModels.AccommodationAvailabilityViewModel>
+@{
+    ViewData["Title"] = "Apply for accommodation";
+    var accommodations = Model.ToList();
+}
+
+<div class="mb-4">
+    <span class="eyebrow">Residence request</span>
+    <h2 class="mb-2">Apply for accommodation</h2>
+    <p class="text-muted mb-0">Choose a residence with available space. The availability below is calculated from current unit capacity and active residents before your application is submitted.</p>
+</div>
+
+@if (TempData["ApplicationError"] != null) { <div class="alert alert-danger">@TempData["ApplicationError"]</div> }
+
+<div class="row g-3 mb-4">
+    @foreach (var accommodation in accommodations)
+    {
+        <div class="col-md-6 col-xl-4">
+            <article class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between gap-2 mb-3">
+                        <div><h3 class="h5 mb-1">@accommodation.Name</h3><p class="small text-muted mb-0"><i class="fa-solid fa-location-dot me-1"></i>@accommodation.Address</p></div>
+                        <span class="badge @(accommodation.CanApply ? "bg-success" : "bg-light border text-dark") align-self-start">@(accommodation.CanApply ? "Available" : "Full")</span>
+                    </div>
+                    <div class="row g-2 text-center">
+                        <div class="col-4"><div class="small text-muted">Total units</div><strong>@accommodation.TotalUnits</strong></div>
+                        <div class="col-4"><div class="small text-muted">Available units</div><strong>@accommodation.AvailableUnits</strong></div>
+                        <div class="col-4"><div class="small text-muted">Open spaces</div><strong>@accommodation.AvailableSpaces</strong></div>
+                    </div>
+                </div>
+            </article>
+        </div>
+    }
+</div>
+
+<form asp-action="Apply" method="post" class="card shadow-sm">
+    <div class="card-body p-4">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+        <div class="mb-3">
+            <label for="accommodationId" class="form-label fw-semibold">Residence</label>
+            <select id="accommodationId" name="accommodationId" class="form-select" required>
+                <option value="">Select a residence with availability</option>
+                @foreach (var accommodation in accommodations.Where(item => item.CanApply))
+                {
+                    <option value="@accommodation.AccommodationId">@accommodation.Name — @accommodation.AvailableUnits available unit(s), @accommodation.AvailableSpaces open space(s)</option>
+                }
+            </select>
+            @if (!accommodations.Any(item => item.CanApply))
+            {
+                <div class="form-text text-danger">There are currently no residences with available units or spaces.</div>
+            }
+        </div>
+        <div class="mb-4">
+            <label for="applicantMessage" class="form-label fw-semibold">Message to administrator</label>
+            <textarea id="applicantMessage" name="applicantMessage" class="form-control" rows="5" maxlength="2000" placeholder="Include any information relevant to your accommodation request."></textarea>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <button type="submit" class="btn btn-primary" disabled="@(!accommodations.Any(item => item.CanApply))">Submit application</button>
+            <a asp-action="Index" class="btn btn-light">Cancel</a>
+        </div>
+    </div>
+</form>

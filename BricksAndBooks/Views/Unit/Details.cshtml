@@ -1,0 +1,62 @@
+@model BricksAndBooks.Models.Unit
+
+@{
+    ViewData["Title"] = "Unit Details";
+    var accommodation = Model.Accommodation;
+    var accommodationName = accommodation?.Name ?? "Unknown";
+    var accommodationId = accommodation?.Id ?? 0;
+}
+
+<h2>@ViewData["Title"]</h2>
+<div>
+    <h4>Unit</h4>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Id)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Id)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.UnitNumber)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.UnitNumber)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Capacity)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Capacity)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.IsAvailable)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.IsAvailable)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.AccommodationId)
+        </dt>
+        <dd class="col-sm-10">
+            @accommodationName
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.CreatedAt)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.CreatedAt)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.UpdatedAt)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.UpdatedAt)
+        </dd>
+    </dl>
+</div>
+<div>
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">Edit</a>
+    <a asp-action="Index" asp-route-accommodationId="@accommodationId" class="btn btn-light">Back to Units</a>
+</div>

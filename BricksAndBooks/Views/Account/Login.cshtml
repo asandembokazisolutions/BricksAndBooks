@@ -1,0 +1,45 @@
+@model BricksAndBooks.Models.ViewModels.LoginViewModel
+@{
+    ViewData["Title"] = "Sign in";
+}
+
+<section class="auth-layout">
+    <aside class="auth-aside">
+        <div>
+            <span class="eyebrow text-white-50">Bricks &amp; Books</span>
+            <h2 class="mt-3 mb-3">Your residence, organised.</h2>
+            <p class="mb-0">Sign in to manage accommodation, view bills, make payments, communicate with support, and track your service requests.</p>
+        </div>
+        <div class="auth-steps">
+            <div class="auth-step"><i class="fa-solid fa-building"></i><span><strong class="d-block text-white">Residence account</strong>Keep your application and unit information together.</span></div>
+            <div class="auth-step"><i class="fa-solid fa-wallet"></i><span><strong class="d-block text-white">Clear billing</strong>Review charges and select what you want to pay.</span></div>
+            <div class="auth-step"><i class="fa-regular fa-message"></i><span><strong class="d-block text-white">Direct support</strong>Stay in touch with the residence and finance teams.</span></div>
+        </div>
+    </aside>
+    <div class="auth-form-panel">
+        <span class="eyebrow">Secure account access</span>
+        <h1 class="mt-2 mb-2">Welcome back</h1>
+        <p class="text-muted mb-4">Use your University of the Free State email address to sign in.</p>
+        <form asp-action="Login" method="post" novalidate>
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="All" class="text-danger small mb-3"></div>
+            <div class="mb-3">
+                <label asp-for="Email" class="form-label">University email</label>
+                <div class="input-group"><span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-regular fa-envelope"></i></span><input asp-for="Email" class="form-control border-start-0" autocomplete="email" placeholder="name@ufs.ac.za" /></div>
+                <span asp-validation-for="Email" class="text-danger small"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Password" class="form-label">Password</label>
+                <div class="input-group"><span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-solid fa-lock"></i></span><input asp-for="Password" class="form-control border-start-0" type="password" autocomplete="current-password" placeholder="Enter your password" /></div>
+                <span asp-validation-for="Password" class="text-danger small"></span>
+            </div>
+            <div class="form-check mb-4"><input asp-for="RememberMe" class="form-check-input" /><label asp-for="RememberMe" class="form-check-label">Keep me signed in on this device</label></div>
+            <button type="submit" class="btn btn-primary w-100"><i class="fa-solid fa-arrow-right-to-bracket me-2"></i>Sign in to my account</button>
+        </form>
+        <p class="auth-footer mb-0">New to Bricks &amp; Books? <a asp-action="Register" class="fw-semibold text-primary">Create your account</a></p>
+    </div>
+</section>
+
+@section Scripts {
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+}

@@ -1,0 +1,37 @@
+@model IEnumerable<BricksAndBooks.Models.Payment>
+@{
+    var canVerify = ViewData["CanVerifyPayments"] is bool canVerifyFromController
+        ? canVerifyFromController
+        : User.IsInRole("Admin") || User.IsInRole("FinancialOfficer");
+    ViewData["Title"] = canVerify ? "Payment management" : "Payment history";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+    <div><h2 class="mb-1">@ViewData["Title"]</h2><p class="text-muted mb-0">Review payment requests and the billing items included in every transaction.</p></div>
+    @if (!canVerify)
+    {
+        <a asp-action="Process" class="btn btn-primary"><i class="fa-solid fa-wallet me-2"></i>Make a payment</a>
+    }
+</div>
+
+<div class="card shadow-sm"><div class="table-responsive"><table class="table align-middle mb-0">
+    <thead><tr><th class="ps-3">Reference</th><th>Items paid</th><th>Amount</th><th>Method</th><th>Status</th><th>Submitted</th><th class="text-end pe-3"></th></tr></thead>
+    <tbody>
+    @foreach (var item in Model)
+    {
+        <tr>
+            <td class="ps-3"><code>@item.TransactionReferenceId</code></td>
+            <td>@(item.Allocations.Any() ? $"{item.Allocations.Count} selected item(s)" : "Legacy single bill")</td>
+            <td class="fw-semibold">@item.Amount.ToString("C")</td>
+            <td>@item.Method</td>
+            <td><span class="badge @(item.Status == BricksAndBooks.Models.PaymentStatus.Successful ? "bg-success" : item.Status == BricksAndBooks.Models.PaymentStatus.Pending ? "bg-warning text-dark" : "bg-secondary")">@item.Status</span></td>
+            <td>@item.PaymentDate.ToLocalTime().ToString("dd MMM yyyy")</td>
+            <td class="text-end pe-3"><a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">Details</a> @if (canVerify && item.Status == BricksAndBooks.Models.PaymentStatus.Pending) { <a asp-action="Verify" asp-route-id="@item.Id" class="btn btn-sm btn-warning">Verify</a> }</td>
+        </tr>
+    }
+    @if (!Model.Any())
+    {
+        <tr><td colspan="7" class="text-center text-muted py-5">No payments have been submitted yet.</td></tr>
+    }
+    </tbody>
+</table></div></div>

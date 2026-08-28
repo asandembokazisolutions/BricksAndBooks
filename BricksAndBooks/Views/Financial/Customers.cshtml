@@ -1,0 +1,59 @@
+@model IEnumerable<BricksAndBooks.Models.ApplicationUser>
+@{
+    ViewData["Title"] = "Customer accounts";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+    <div>
+        <span class="eyebrow">Finance operations</span>
+        <h2 class="mt-2 mb-1">Customer accounts</h2>
+        <p class="text-muted mb-0">Manage Student and Staff customer profiles, access, passwords, and account records. Privileged roles remain Administrator-only.</p>
+    </div>
+    <div class="d-flex gap-2"><a asp-action="Index" class="btn btn-light">Back to finance</a><a asp-controller="User" asp-action="Create" class="btn btn-primary"><i class="fa-solid fa-user-plus me-2"></i>Add customer</a></div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th class="ps-3">Customer</th>
+                    <th>University email</th>
+                    <th>Account type</th>
+                    <th>University reference</th>
+                    <th class="text-end pe-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var item in Model)
+            {
+                var displayName = $"{item.FirstName} {item.LastName}".Trim();
+                var accountType = item.IsStudent ? "Student" : "Staff";
+                var reference = item.IsStudent ? item.StudentNumber : item.EmployeeNumber;
+                <tr>
+                    <td class="ps-3"><strong>@(string.IsNullOrWhiteSpace(displayName) ? item.UserName : displayName)</strong><div class="small text-muted">@item.UserName</div></td>
+                    <td>@item.Email</td>
+                    <td><span class="badge @(item.IsStudent ? "bg-primary" : "bg-light border text-dark")">@accountType</span></td>
+                    <td>@(string.IsNullOrWhiteSpace(reference) ? "—" : reference)</td>
+                    <td class="text-end pe-3">
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"><i class="fa-solid fa-ellipsis me-1"></i>Actions</button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                                <li><a class="dropdown-item" asp-controller="User" asp-action="Details" asp-route-id="@item.Id"><i class="fa-regular fa-address-card"></i>View account</a></li>
+                                <li><a class="dropdown-item" asp-controller="User" asp-action="Edit" asp-route-id="@item.Id"><i class="fa-solid fa-pen-to-square"></i>Edit customer</a></li>
+                                <li><a class="dropdown-item" asp-controller="User" asp-action="ResetPassword" asp-route-id="@item.Id"><i class="fa-solid fa-key"></i>Reset password</a></li>
+                                <li><hr class="dropdown-divider" /></li>
+                                <li><a class="dropdown-item text-danger" asp-controller="User" asp-action="Delete" asp-route-id="@item.Id"><i class="fa-solid fa-trash"></i>Delete customer</a></li>
+                            </ul>
+                        </div>
+                    </td>
+                </tr>
+            }
+            @if (!Model.Any())
+            {
+                <tr><td colspan="5" class="text-center text-muted py-5">No Student or Staff customer accounts were found.</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

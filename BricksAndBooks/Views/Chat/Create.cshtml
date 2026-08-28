@@ -1,0 +1,37 @@
+@using BricksAndBooks.Models
+@{
+    ViewData["Title"] = "New Message";
+    var recipients = ViewBag.Recipients as IEnumerable<ApplicationUser> ?? Enumerable.Empty<ApplicationUser>();
+}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h2 class="h5 mb-1">New message</h2>
+                <p class="text-muted mb-0 small">Send an estate, accommodation, or payment-related message to a registered contact.</p>
+            </div>
+            <div class="card-body">
+                <form asp-action="Create" method="post">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+                    <div class="mb-3">
+                        <label for="recipientUserId" class="form-label">Recipient</label>
+                        <select id="recipientUserId" name="recipientUserId" class="form-select" required>
+                            <option value="">Choose a recipient</option>
+                            @foreach (var recipient in recipients)
+                            {
+                                <option value="@recipient.Id">@recipient.FirstName @recipient.LastName (@recipient.Email)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label for="content" class="form-label">Message</label>
+                        <textarea id="content" name="content" class="form-control" rows="6" maxlength="2000" required></textarea>
+                        <div class="form-text">Maximum 2,000 characters.</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Send message</button>
+                    <a asp-action="Index" class="btn btn-light">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

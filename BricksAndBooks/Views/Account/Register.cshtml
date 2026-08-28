@@ -1,0 +1,97 @@
+@model BricksAndBooks.Models.ViewModels.RegisterViewModel
+@{
+    ViewData["Title"] = "Create your account";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-xl-7">
+        <div class="card dashboard-reference-card border-0">
+            <div class="card-body p-4 p-lg-5">
+                <span class="eyebrow">Bricks & Books access</span>
+                <h1 class="h2 mt-2 mb-2">Create your account</h1>
+                <p class="text-muted mb-4">First tell us how you are connected to the university. We will then ask for the correct identification number.</p>
+                <form asp-action="Register" method="post">
+                    <div asp-validation-summary="All" class="alert alert-danger"></div>
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">I am registering as</label>
+                        <div class="registration-choice">
+                            <div class="position-relative">
+                                <input type="radio" id="studentChoice" name="userType" value="student" @((Model?.IsStudent ?? false) ? "checked" : "") />
+                                <label for="studentChoice"><i class="fa-solid fa-graduation-cap mb-2"></i><strong>Student</strong><small>I need student accommodation.</small></label>
+                            </div>
+                            <div class="position-relative">
+                                <input type="radio" id="staffChoice" name="userType" value="staff" @((Model?.IsStaff ?? false) ? "checked" : "") />
+                                <label for="staffChoice"><i class="fa-solid fa-id-badge mb-2"></i><strong>Staff member</strong><small>I am registering as university staff.</small></label>
+                            </div>
+                        </div>
+                        <input asp-for="IsStudent" type="hidden" id="IsStudent" />
+                        <input asp-for="IsStaff" type="hidden" id="IsStaff" />
+                    </div>
+                    <div class="registration-id-panel mb-4">
+                        <div id="studentIdPanel" style="display:@(Model.IsStudent ? "block" : "none")">
+                            <label asp-for="StudentNumber" class="form-label fw-semibold"></label>
+                            <input asp-for="StudentNumber" class="form-control" placeholder="Enter your student number" />
+                            <span asp-validation-for="StudentNumber" class="text-danger"></span>
+                            <small class="text-muted">Only your student number is required for a student account.</small>
+                        </div>
+                        <div id="staffIdPanel" style="display:@(Model.IsStaff ? "block" : "none")">
+                            <label asp-for="EmployeeNumber" class="form-label fw-semibold"></label>
+                            <input asp-for="EmployeeNumber" class="form-control" placeholder="Enter your employee number" />
+                            <span asp-validation-for="EmployeeNumber" class="text-danger"></span>
+                            <small class="text-muted">Only your employee number is required for a staff account.</small>
+                        </div>
+                        <div id="typeHint" class="text-muted small @(((Model?.IsStudent ?? false) || (Model?.IsStaff ?? false)) ? "d-none" : "")"><i class="fa-solid fa-circle-info me-1"></i>Select Student or Staff member above to continue.</div>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6"><label asp-for="FirstName" class="form-label"></label><input asp-for="FirstName" class="form-control" /><span asp-validation-for="FirstName" class="text-danger"></span></div>
+                        <div class="col-md-6"><label asp-for="LastName" class="form-label"></label><input asp-for="LastName" class="form-control" /><span asp-validation-for="LastName" class="text-danger"></span></div>
+                        <div class="col-12">
+                            <label asp-for="Email" class="form-label"></label>
+                            <input asp-for="Email" class="form-control" type="email" placeholder="name@ufs.ac.za" autocomplete="email" />
+                            <div class="form-text">Use your official University of the Free State email address ending in <strong>@@ufs.ac.za</strong>.</div>
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6"><label asp-for="Password" class="form-label"></label><input asp-for="Password" class="form-control" type="password" /><span asp-validation-for="Password" class="text-danger"></span></div>
+                        <div class="col-md-6"><label asp-for="ConfirmPassword" class="form-label"></label><input asp-for="ConfirmPassword" class="form-control" type="password" /><span asp-validation-for="ConfirmPassword" class="text-danger"></span></div>
+                    </div>
+                    <div class="alert alert-info mt-4 small"><i class="fa-solid fa-shield-halved me-2"></i>Financial officer and administrator access is approved and assigned by an existing administrator after registration.</div>
+                    <button type="submit" class="btn btn-primary w-100 mt-2"><i class="fa-solid fa-user-plus me-2"></i>Create account</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        (() => {
+            const studentChoice = document.getElementById('studentChoice');
+            const staffChoice = document.getElementById('staffChoice');
+            const studentFlag = document.getElementById('IsStudent');
+            const staffFlag = document.getElementById('IsStaff');
+            const studentPanel = document.getElementById('studentIdPanel');
+            const staffPanel = document.getElementById('staffIdPanel');
+            const studentNumber = document.getElementById('StudentNumber');
+            const employeeNumber = document.getElementById('EmployeeNumber');
+            const typeHint = document.getElementById('typeHint');
+            const setType = (type) => {
+                const isStudent = type === 'student';
+                studentFlag.value = isStudent ? 'true' : 'false';
+                staffFlag.value = isStudent ? 'false' : 'true';
+                studentPanel.style.display = isStudent ? 'block' : 'none';
+                staffPanel.style.display = isStudent ? 'none' : 'block';
+                studentNumber.disabled = !isStudent;
+                employeeNumber.disabled = isStudent;
+                typeHint.classList.add('d-none');
+                if (isStudent) employeeNumber.value = '';
+                else studentNumber.value = '';
+            };
+            studentChoice.addEventListener('change', () => setType('student'));
+            staffChoice.addEventListener('change', () => setType('staff'));
+            if (studentChoice.checked) setType('student');
+            else if (staffChoice.checked) setType('staff');
+            else { studentNumber.disabled = true; employeeNumber.disabled = true; }
+        })();
+    </script>
+}

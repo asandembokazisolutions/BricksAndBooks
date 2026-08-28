@@ -1,0 +1,88 @@
+@model List<BricksAndBooks.Infrastructure.PaymentAnomalyResult>
+
+@{
+    ViewData["Title"] = "Payment Anomaly Detection";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h2>Payment Anomaly Detection</h2>
+
+<p>
+    <a asp-action="Index" class="btn btn-primary">Run Detection Now</a>
+</p>
+
+@if (Model == null || Model.Count == 0)
+{
+    <div class="alert alert-info">
+        No payment anomalies detected.
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>
+                        @Html.DisplayNameFor(model => model.First().Payment.Id)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model.First().Payment.Amount)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model.First().Payment.Status)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model.First().Payment.PaymentDate)
+                    </th>
+                    <th>
+                        Anomaly Type
+                    </th>
+                    <th>
+                        Severity
+                    </th>
+                    <th>
+                        Description
+                    </th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+@foreach (var anomaly in Model) {
+                <tr>
+                    <td>
+                        @Html.DisplayFor(modelItem => anomaly.Payment.Id)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => anomaly.Payment.Amount)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => anomaly.Payment.Status)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => anomaly.Payment.PaymentDate)
+                    </td>
+                    <td>
+                        @anomaly.AnomalyType
+                    </td>
+                    <td>
+                        <span class="badge @(anomaly.Severity == "High" ? "bg-danger" : anomaly.Severity == "Medium" ? "bg-warning" : "bg-info")">
+                            @anomaly.Severity
+                        </span>
+                    </td>
+                    <td>
+                        @anomaly.Description
+                    </td>
+                    <td>
+                        <a asp-action="Details" asp-route-id="@anomaly.Payment.Id" class="btn btn-sm btn-outline-primary">View Details</a>
+                        <form asp-action="Resolve" method="post" style="display:inline;">
+                            <input type="hidden" name="id" value="@anomaly.Payment.Id" />
+                            <button type="submit" class="btn btn-sm btn-outline-success">Mark as Reviewed</button>
+                        </form>
+                    </td>
+                </tr>
+}
+            </tbody>
+        </table>
+    </div>
+}

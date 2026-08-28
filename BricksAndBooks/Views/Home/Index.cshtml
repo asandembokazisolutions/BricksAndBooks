@@ -1,0 +1,123 @@
+﻿@model BricksAndBooks.Models.ViewModels.DashboardViewModel
+@{
+    ViewData["Title"] = "UFS accommodation";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var fallbackImage = Url.Content("~/images/residence-hero.jpg");
+}
+
+<section class="landing-reference">
+    <div class="landing-reference-content">
+        <span class="eyebrow text-white">Bricks &amp; Books · UFS accommodation</span>
+        <h1 class="mb-3">UFS accommodation, managed in one place.</h1>
+        <p class="mb-4">Browse residences, submit an accommodation application, track its decision, and keep bills and maintenance requests clear from move-in onward.</p>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="#residences" class="btn btn-primary btn-lg"><i class="fa-solid fa-building me-2"></i>Browse residences</a>
+            @if (!(User.Identity?.IsAuthenticated ?? false))
+            {
+                <a asp-controller="Account" asp-action="Register" class="btn btn-outline-light btn-lg">Create a UFS account</a>
+            }
+        </div>
+        <div class="landing-live-counts" aria-label="Current accommodation totals">
+            <span><strong>@Model.TotalAccommodations</strong> residences listed</span>
+            <span><strong>@Model.TotalUnits</strong> managed units</span>
+        </div>
+    </div>
+</section>
+
+<section class="landing-search-panel" aria-label="Find accommodation">
+    <form asp-controller="Accommodation" asp-action="Index" method="get" class="row g-2 align-items-end">
+        <div class="col-lg-5">
+            <label class="form-label small text-muted mb-1" for="residence-search">Residence or area</label>
+            <input id="residence-search" class="form-control" name="search" placeholder="Search by residence name or area" />
+        </div>
+        <div class="col-sm-4 col-lg-2">
+            <label class="form-label small text-muted mb-1" for="move-in">Expected move-in</label>
+            <input id="move-in" class="form-control" type="date" name="moveIn" />
+        </div>
+        <div class="col-sm-4 col-lg-2">
+            <label class="form-label small text-muted mb-1" for="unit-type">Unit type</label>
+            <select id="unit-type" class="form-select" name="unitType"><option value="">Any unit type</option><option value="Single">Single</option><option value="Shared">Shared</option></select>
+        </div>
+        <div class="col-sm-4 col-lg-3"><button class="btn btn-primary w-100" type="submit">Find accommodation</button></div>
+    </form>
+</section>
+
+<section id="residences" class="landing-section">
+    <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+        <div>
+            <span class="eyebrow">Available to explore</span>
+            <h2 class="landing-section-title mb-1">Residences managed by Bricks &amp; Books</h2>
+            <p class="text-muted mb-0">Each listing shows its address, unit count, and accommodation details before you apply.</p>
+        </div>
+        <a asp-controller="Accommodation" asp-action="Index" class="btn btn-outline-primary">See all residences</a>
+    </div>
+
+    <div class="row g-4">
+        @if (Model.FeaturedAccommodations.Any())
+        {
+            @foreach (var accommodation in Model.FeaturedAccommodations)
+            {
+                var cover = accommodation.ImageUrls?
+                    .Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .FirstOrDefault();
+                var coverImage = string.IsNullOrWhiteSpace(cover) ? fallbackImage : Url.Content(cover);
+                var description = string.IsNullOrWhiteSpace(accommodation.Description)
+                    ? "View this residence to see its available unit types and accommodation details."
+                    : accommodation.Description;
+
+                <div class="col-md-6 col-xl-4">
+                    <article class="card landing-feature-card residence-card h-100">
+                        <div class="accommodation-cover">
+                            <img src="@coverImage" alt="Residence photo for @accommodation.Name" loading="lazy" onerror="this.onerror=null;this.src='@fallbackImage';" />
+                            <span class="residence-unit-count">@accommodation.Units.Count unit@(accommodation.Units.Count == 1 ? string.Empty : "s")</span>
+                        </div>
+                        <div class="card-body d-flex flex-column">
+                            <h3 class="h5 mb-2">@accommodation.Name</h3>
+                            <p class="text-muted small mb-3"><i class="fa-solid fa-location-dot me-1"></i>@accommodation.Address</p>
+                            <p class="text-muted small flex-grow-1 mb-4">@description</p>
+                            <a asp-controller="Accommodation" asp-action="Details" asp-route-id="@accommodation.Id" class="btn btn-sm btn-primary align-self-start">View residence</a>
+                        </div>
+                    </article>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="col-12">
+                <div class="landing-feature-card card card-body text-center py-5">
+                    <i class="fa-solid fa-building-circle-exclamation fs-2 text-muted mb-3"></i>
+                    <h3 class="h5">No residences are listed yet</h3>
+                    <p class="text-muted mb-0">The accommodation team has not published a residence listing yet. Please contact the residence office for assistance.</p>
+                </div>
+            </div>
+        }
+    </div>
+</section>
+
+<section class="landing-section landing-workflow">
+    <div class="row g-4">
+        <div class="col-md-4"><div class="landing-feature-card card card-body h-100"><span class="feature-icon mb-3"><i class="fa-solid fa-clipboard-list"></i></span><h3 class="h5">One application, clear outcome</h3><p class="text-muted small mb-0">Submit your preferred accommodation request and see whether it is pending, approved, or needs attention.</p></div></div>
+        <div class="col-md-4"><div class="landing-feature-card card card-body h-100"><span class="feature-icon mb-3"><i class="fa-solid fa-file-invoice-dollar"></i></span><h3 class="h5">Bills you can check</h3><p class="text-muted small mb-0">Review rent and utilities by billing period, choose the charges you want to pay, and keep your payment history together.</p></div></div>
+        <div class="col-md-4"><div class="landing-feature-card card card-body h-100"><span class="feature-icon mb-3"><i class="fa-solid fa-screwdriver-wrench"></i></span><h3 class="h5">Maintenance that stays visible</h3><p class="text-muted small mb-0">Report an issue for your allocated unit, attach supporting photos or documents, and follow the status update.</p></div></div>
+    </div>
+</section>
+
+<section class="cta-section landing-cta mb-4">
+    <div class="row align-items-center g-4">
+        <div class="col-lg-8">
+            <span class="eyebrow text-white">Accommodation applications</span>
+            <h2 class="display-6 mt-2">Ready to apply for a managed residence?</h2>
+            <p class="mb-0">Create your UFS account first, then send an accommodation application when you have found the residence that suits you.</p>
+        </div>
+        <div class="col-lg-4 text-lg-end">
+            @if (!(User.Identity?.IsAuthenticated ?? false))
+            {
+                <a asp-controller="Account" asp-action="Register" class="btn btn-light btn-lg">Create account</a>
+            }
+            else
+            {
+                <a asp-controller="AccommodationApplication" asp-action="Apply" class="btn btn-light btn-lg">Open application</a>
+            }
+        </div>
+    </div>
+</section>

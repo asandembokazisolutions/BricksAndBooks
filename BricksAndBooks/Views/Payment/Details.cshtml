@@ -1,0 +1,63 @@
+@model BricksAndBooks.Models.Payment
+@{
+    ViewData["Title"] = "Payment details";
+}
+
+@if (TempData["StatusMessage"] is string statusMessage)
+{
+    <div class="alert alert-info">@statusMessage</div>
+}
+
+<div class="d-flex justify-content-between align-items-start gap-3 mb-4">
+    <div>
+        <h2 class="mb-1">Payment details</h2>
+        <p class="text-muted mb-0">Reference: <code>@Model.TransactionReferenceId</code></p>
+    </div>
+    <span class="badge @(Model.Status == BricksAndBooks.Models.PaymentStatus.Successful ? "text-bg-success" : Model.Status == BricksAndBooks.Models.PaymentStatus.Pending ? "text-bg-warning" : "text-bg-secondary")">@Model.Status</span>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white"><strong>Selected billing items</strong></div>
+            <div class="table-responsive">
+                <table class="table mb-0 align-middle">
+                    <thead><tr><th class="ps-3">Period</th><th>Charge type</th><th class="text-end pe-3">Amount</th></tr></thead>
+                    <tbody>
+                    @foreach (var allocation in Model.Allocations.OrderBy(item => item.Bill?.Year).ThenBy(item => item.Bill?.Month).ThenBy(item => item.ChargeType))
+                    {
+                        <tr>
+                            <td class="ps-3">@(allocation.Bill == null ? "Legacy bill" : new DateTime(allocation.Bill.Year, allocation.Bill.Month, 1).ToString("MMMM yyyy"))</td>
+                            <td>@allocation.ChargeType</td>
+                            <td class="text-end pe-3 fw-semibold">@allocation.Amount.ToString("C")</td>
+                        </tr>
+                    }
+                    @if (!Model.Allocations.Any())
+                    {
+                        <tr><td colspan="3" class="text-muted text-center py-4">This is a legacy single-bill payment record.</td></tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-6">Total</dt><dd class="col-6 text-end fw-bold">@Model.Amount.ToString("C")</dd>
+                    <dt class="col-6">Method</dt><dd class="col-6 text-end">@Model.Method</dd>
+                    <dt class="col-6">Submitted</dt><dd class="col-6 text-end">@Model.PaymentDate.ToLocalTime().ToString("dd MMM yyyy")</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-4">
+    @if (Model.Status == BricksAndBooks.Models.PaymentStatus.Successful)
+    {
+        <a asp-action="Receipt" asp-route-id="@Model.Id" class="btn btn-primary"><i class="fa-solid fa-receipt me-2"></i>View receipt</a>
+    }
+    <a asp-action="Index" class="btn btn-light">Back to payments</a>
+</div>

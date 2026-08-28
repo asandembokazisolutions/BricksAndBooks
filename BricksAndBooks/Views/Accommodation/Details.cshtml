@@ -1,0 +1,143 @@
+@model BricksAndBooks.Models.Accommodation
+@{
+    ViewData["Title"] = Model.Name;
+    var id = Model.Id;
+    var fallbackImage = Url.Content("~/images/residence-hero.jpg");
+    var images = (Model.ImageUrls ?? string.Empty)
+        .Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .ToList();
+    var residenceReviews = ViewBag.ResidenceReviews as IEnumerable<BricksAndBooks.Models.Review>
+        ?? Enumerable.Empty<BricksAndBooks.Models.Review>();
+    var reviewList = residenceReviews.ToList();
+    var averageRating = reviewList.Any() ? reviewList.Average(review => review.Rating) : 0;
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+    <div>
+        <span class="eyebrow">Bricks &amp; Books residence</span>
+        <h1 class="mt-2 mb-1">@Model.Name</h1>
+        <p class="text-muted mb-0"><i class="fa-solid fa-location-dot me-1"></i>@Model.Address</p>
+    </div>
+    <div class="d-flex gap-2">
+        @if (User.IsInRole("Admin"))
+        {
+            <a asp-action="Edit" asp-route-id="@id" class="btn btn-outline-primary"><i class="fa-solid fa-pen-to-square me-2"></i>Edit residence</a>
+        }
+        <a asp-action="Index" class="btn btn-light"><i class="fa-solid fa-arrow-left me-2"></i>All residences</a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="accommodation-gallery mb-4">
+            @if (images.Any())
+            {
+                @foreach (var imageUrl in images)
+                {
+                    <img src="@Url.Content(imageUrl)" alt="Residence photo for @Model.Name" loading="lazy" onerror="this.onerror=null;this.src='@fallbackImage';" />
+                }
+            }
+            else
+            {
+                <img src="@fallbackImage" alt="Residence image placeholder for @Model.Name" loading="lazy" />
+            }
+        </div>
+
+        <section class="card shadow-sm border-0 mb-4">
+            <div class="card-body p-4">
+                <h2 class="h4 mb-3">About this residence</h2>
+                <p class="text-muted mb-0" style="white-space: pre-line;">@(string.IsNullOrWhiteSpace(Model.Description) ? "Accommodation details will be updated by the Bricks & Books residence team." : Model.Description)</p>
+            </div>
+        </section>
+
+        <section class="card shadow-sm border-0">
+            <div class="card-header bg-white d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <div>
+                    <strong>Resident feedback</strong>
+                    <span class="text-muted small ms-2">@reviewList.Count review@(reviewList.Count == 1 ? string.Empty : "s")</span>
+                </div>
+                @if (reviewList.Any())
+                {
+                    <span class="badge text-bg-light border text-dark"><i class="fa-solid fa-star text-warning me-1"></i>@averageRating.ToString("0.0") / 5</span>
+                }
+            </div>
+            <div class="card-body p-4">
+                @if (reviewList.Any())
+                {
+                    <div class="d-grid gap-4">
+                        @foreach (var review in reviewList)
+                        {
+                            var reviewerName = string.IsNullOrWhiteSpace(review.User?.FirstName)
+                                ? "Verified residence user"
+                                : $"{review.User.FirstName} {(string.IsNullOrWhiteSpace(review.User.LastName) ? string.Empty : review.User.LastName.Substring(0, 1) + ".")}";
+                            <article class="border-bottom pb-4 last-review">
+                                <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
+                                    <div><strong>@review.Title</strong><div class="small text-muted mt-1">@reviewerName</div></div>
+                                    <div class="review-stars" aria-label="@review.Rating out of 5 stars">
+                                        @for (var star = 1; star <= 5; star++)
+                                        {
+                                            <i class="fa-solid fa-star @(star <= review.Rating ? "text-warning" : "text-muted")"></i>
+                                        }
+                                    </div>
+                                </div>
+                                <p class="text-muted mb-2" style="white-space: pre-line;">@review.Comment</p>
+                                <div class="small text-muted">Posted @review.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")</div>
+                            </article>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted mb-0">No resident feedback has been posted for this residence yet.</p>
+                }
+            </div>
+        </section>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white"><strong>Residence overview</strong></div>
+            <div class="card-body">
+                <div class="small text-muted mb-1">Managed units</div>
+                <div class="fs-3 fw-semibold mb-3">@Model.Units.Count</div>
+                <div class="small text-muted mb-1">Available units</div>
+                <div class="fs-3 fw-semibold">@Model.Units.Count(unit => unit.IsAvailable)</div>
+            </div>
+        </div>
+
+        @if (User.IsInRole("Student") || User.IsInRole("Staff"))
+        {
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body">
+                    <h2 class="h5">Stayed here?</h2>
+                    <p class="text-muted small">Share a rating and review. Your feedback is posted directly to this residence page.</p>
+                    <a asp-controller="Review" asp-action="Create" class="btn btn-outline-primary w-100">Post feedback</a>
+                </div>
+            </div>
+        }
+
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white"><strong>Units</strong></div>
+            <div class="list-group list-group-flush">
+                @if (Model.Units.Any())
+                {
+                    @foreach (var unit in Model.Units.OrderBy(unit => unit.UnitNumber))
+                    {
+                        <div class="list-group-item d-flex align-items-center justify-content-between gap-2">
+                            <div><strong>Unit @unit.UnitNumber</strong><div class="small text-muted">@unit.OccupancyType · Capacity @unit.Capacity</div></div>
+                            <span class="badge @(unit.IsAvailable ? "bg-success" : "bg-light border text-dark")">@(unit.IsAvailable ? "Available" : "Occupied")</span>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="list-group-item text-muted">Unit information is not available yet.</div>
+                }
+            </div>
+            @if (User.IsInRole("Admin"))
+            {
+                <div class="card-footer bg-white"><a asp-controller="Unit" asp-action="Create" asp-route-accommodationId="@id" class="btn btn-sm btn-primary">Add unit</a></div>
+            }
+        </div>
+    </div>
+</div>

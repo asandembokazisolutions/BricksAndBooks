@@ -1,0 +1,103 @@
+@model BricksAndBooks.Models.ViewModels.CustomerFinancialViewModel
+
+@{
+    ViewData["Title"] = "Customer Details";
+}
+
+<h2>@ViewData["Title"]</h2>
+<div>
+    <h4>Customer</h4>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.User.Id)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.User.Id)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.User.UserName)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.User.UserName)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.User.Email)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.User.Email)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.User.FirstName)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.User.FirstName)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.User.LastName)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.User.LastName)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.User.StudentNumber)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.User.StudentNumber)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.User.EmployeeNumber)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.User.EmployeeNumber)
+        </dd>
+    </dl>
+</div>
+<div>
+    <h4>Bills</h4>
+    @if (Model.Bills.Any())
+    {
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Month/Year</th>
+                        <th>Rent</th>
+                        <th>Water</th>
+                        <th>Electricity</th>
+                        <th>Parking</th>
+                        <th>Additional Vehicle</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+@foreach (var bill in Model.Bills) {
+                <tr>
+                    <td>@bill.Month/@bill.Year</td>
+                    <td>@bill.RentAmount.ToString("0,0.00")</td>
+                    <td>@bill.WaterAmount.ToString("0,0.00")</td>
+                    <td>@bill.ElectricityAmount.ToString("0,0.00")</td>
+                    <td>@bill.ParkingAmount.ToString("0,0.00")</td>
+                    <td>@bill.AdditionalVehicleAmount.ToString("0,0.00")</td>
+                    <td>@bill.TotalAmount.ToString("0,0.00")</td>
+                    <td>@bill.Status</td>
+                    <td>
+                        <a asp-action="Details" asp-controller="Payment" asp-route-id="@bill.Id" class="btn btn-sm btn-info">View Payments</a>
+                    </td>
+                </tr>
+}
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <p>No bills found for this customer.</p>
+    }
+</div>
+<div>
+    <a asp-action="Customers" class="btn btn-primary">Back to Customers List</a>
+    <a asp-action="Index" class="btn btn-light">Back to Financial Overview</a>
+</div>

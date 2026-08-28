@@ -1,0 +1,52 @@
+@model IEnumerable<BricksAndBooks.Models.ViewModels.OccupancyReportViewModel>
+
+@{
+    ViewData["Title"] = "Occupancy Report";
+}
+
+<h2>@ViewData["Title"]</h2>
+<p>
+    <a asp-action="Index" class="btn btn-outline-secondary">Back to Reports</a>
+</p>
+<div class="table-responsive">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>
+                    @Html.DisplayNameFor(model => model.AccommodationName)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.TotalUnits)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.OccupiedUnits)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.OccupancyRate)
+                </th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.AccommodationName)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.TotalUnits)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.OccupiedUnits)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.OccupancyRate)
+            </td>
+            <td>
+                <!-- We can add actions if needed -->
+            </td>
+        </tr>
+}
+        </tbody>
+    </table>
+</div>

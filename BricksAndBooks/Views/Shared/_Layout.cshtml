@@ -1,0 +1,167 @@
+@using Microsoft.AspNetCore.Identity
+@using System.Text.Json
+@inject IConfiguration Configuration
+@inject Microsoft.AspNetCore.Identity.UserManager<ApplicationUser> UserManager
+@{
+    var currentAppUser = User.Identity?.IsAuthenticated == true ? await UserManager.GetUserAsync(User) : null;
+    var canManagePayments = User.IsInRole("Admin") || User.IsInRole("FinancialOfficer") || currentAppUser?.IsAdmin == true || currentAppUser?.IsFinancialOfficer == true;
+    var canAdminister = User.IsInRole("Admin") || User.IsInRole("Administrator") || currentAppUser?.IsAdmin == true;
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "Home";
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "Index";
+    var pageTitle = ViewData["Title"]?.ToString() ?? "Overview";
+    var pageDescription = ViewData["MetaDescription"]?.ToString() ?? "Bricks & Books helps University of the Free State students and staff find managed accommodation, submit applications, and manage residence accounts.";
+    var userName = User.Identity?.IsAuthenticated == true ? (User.Identity.Name ?? "User") : "Guest";
+    var initials = string.Join("", userName.Split(new[] { '.', '@', ' ', '_' }, StringSplitOptions.RemoveEmptyEntries).Take(2).Select(s => char.ToUpperInvariant(s[0])));
+    if (string.IsNullOrWhiteSpace(initials)) { initials = "BB"; }
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@pageTitle | Bricks &amp; Books</title>
+    <meta name="description" content="@pageDescription" />
+    <meta name="theme-color" content="#123440" />
+    <meta property="og:site_name" content="Bricks &amp; Books" />
+    <meta property="og:title" content="@pageTitle | Bricks &amp; Books" />
+    <meta property="og:description" content="@pageDescription" />
+    <meta property="og:image" content="@Url.Content("~/images/bnb-logo-square.png")" />
+    <link rel="icon" type="image/png" href="~/images/bnb-logo-square.png" />
+    <link rel="apple-touch-icon" href="~/images/bnb-logo-square.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/BricksAndBooks.styles.css" asp-append-version="true" />
+</head>
+<body class="@(currentController == "Home" && User.Identity?.IsAuthenticated != true ? "public-shell" : currentController == "Admin" ? "dashboard-reference-shell" : currentController == "Account" && (currentAction == "Login" || currentAction == "Register") ? "account-shell" : "")">
+    <div class="app-shell">
+        <aside class="sidebar" id="appSidebar">
+            <div class="brand-lockup">
+                <a asp-controller="Home" asp-action="Index" class="brand-link brand-logo-link">
+                    <img src="~/images/bnb-logo.png" class="brand-logo" alt="Bricks & Books logo" />
+                    <span><strong>Bricks</strong><small>AND BOOKS</small></span>
+                </a>
+                <button class="sidebar-close d-lg-none" type="button" data-sidebar-close aria-label="Close navigation"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="workspace-switcher">
+                <span class="workspace-icon"><i class="fa-solid fa-building-columns"></i></span>
+                <span><small>WORKSPACE</small><strong>Bricks & Books Group</strong></span>
+                <i class="fa-solid fa-chevron-down ms-auto"></i>
+            </div>
+            <nav class="side-nav" aria-label="Main navigation">
+                <span class="nav-section-label">Workspace</span>
+                <a class="side-nav-link @(currentController == "Home" ? "active" : "")" aria-current="@(currentController == "Home" ? "page" : null)" asp-controller="Home" asp-action="Index"><i class="fa-solid fa-grid-2"></i><span>@(canAdminister ? "Admin overview" : canManagePayments ? "Finance overview" : User.Identity?.IsAuthenticated == true ? "My residence" : "Overview")</span></a>
+                <a class="side-nav-link @(currentController == "Accommodation" ? "active" : "")" asp-controller="Accommodation" asp-action="Index"><i class="fa-solid fa-building"></i><span>Accommodation</span></a>
+                @if (canAdminister)
+                {
+                    <a class="side-nav-link @(currentController == "AccommodationApplication" ? "active" : "")" asp-controller="AccommodationApplication" asp-action="Index"><i class="fa-solid fa-clipboard-check"></i><span>Applications</span></a>
+                }
+                else if (User.IsInRole("Student") || User.IsInRole("Staff"))
+                {
+                    <a class="side-nav-link @(currentController == "AccommodationApplication" ? "active" : "")" asp-controller="AccommodationApplication" asp-action="Index"><i class="fa-solid fa-clipboard-list"></i><span>My accommodation request</span></a>
+                }
+                <span class="nav-section-label">Finance</span>
+                @if (canManagePayments)
+                {
+                    <a class="side-nav-link @(currentController == "Financial" ? "active" : "")" asp-controller="Financial" asp-action="Index"><i class="fa-solid fa-wallet"></i><span>Finance operations</span></a>
+                    <a class="side-nav-link @(currentController == "Payment" ? "active" : "")" asp-controller="Payment" asp-action="Index"><i class="fa-solid fa-arrow-right-arrow-left"></i><span>Payments</span></a>
+                    <a class="side-nav-link @(currentController == "User" ? "active" : "")" asp-controller="User" asp-action="Index"><i class="fa-solid fa-users"></i><span>Customer accounts</span></a>
+                    <a class="side-nav-link @(currentController == "Reporting" ? "active" : "")" asp-controller="Reporting" asp-action="Index"><i class="fa-solid fa-file-invoice-dollar"></i><span>Reports</span></a>
+                    <a class="side-nav-link @(currentController == "PaymentAnomaly" ? "active" : "")" asp-controller="PaymentAnomaly" asp-action="Index"><i class="fa-solid fa-shield-halved"></i><span>Risk monitor</span><span class="nav-dot"></span></a>
+                }
+                else if (User.Identity?.IsAuthenticated == true)
+                {
+                    <a class="side-nav-link @(currentController == "Payment" && currentAction == "MyBills" ? "active" : "")" asp-controller="Payment" asp-action="MyBills"><i class="fa-solid fa-file-invoice-dollar"></i><span>My bills</span></a>
+                    <a class="side-nav-link @(currentController == "Payment" && currentAction != "MyBills" ? "active" : "")" asp-controller="Payment" asp-action="Index"><i class="fa-solid fa-arrow-right-arrow-left"></i><span>Payment history</span></a>
+                }
+                <span class="nav-section-label">Operations</span>
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <a class="side-nav-link @(currentController == "Maintenance" ? "active" : "")" asp-controller="Maintenance" asp-action="Index"><i class="fa-solid fa-wrench"></i><span>Maintenance</span></a>
+                    <a class="side-nav-link @(currentController == "Chat" ? "active" : "")" asp-controller="Chat" asp-action="Index"><i class="fa-regular fa-message"></i><span>Messages</span></a>
+                }
+                @if (User.IsInRole("Student") || User.IsInRole("Staff"))
+                {
+                    <a class="side-nav-link @(currentController == "Vehicle" ? "active" : "")" asp-controller="Vehicle" asp-action="Index"><i class="fa-solid fa-car"></i><span>My vehicles</span></a>
+                    <a class="side-nav-link @(currentController == "Review" ? "active" : "")" asp-controller="Review" asp-action="Create"><i class="fa-regular fa-star"></i><span>Feedback</span></a>
+                }
+                @if (canManagePayments)
+                {
+                    <a class="side-nav-link @(currentController == "Review" ? "active" : "")" asp-controller="Review" asp-action="Index"><i class="fa-solid fa-star"></i><span>Reviews</span></a>
+                    <a class="side-nav-link @(currentController == "Search" ? "active" : "")" asp-controller="Search" asp-action="Index"><i class="fa-solid fa-magnifying-glass"></i><span>Global search</span></a>
+                }
+                @if (canAdminister)
+                {
+                    <span class="nav-section-label">Administration</span>
+                    <a class="side-nav-link @(currentController == "Admin" ? "active" : "")" asp-controller="Admin" asp-action="Index"><i class="fa-solid fa-sliders"></i><span>Administration center</span></a>
+                    <a class="side-nav-link @(currentController == "User" ? "active" : "")" asp-controller="User" asp-action="Index"><i class="fa-solid fa-users"></i><span>Users</span></a>
+                    <a class="side-nav-link @(currentController == "Audit" ? "active" : "")" asp-controller="Audit" asp-action="Index"><i class="fa-solid fa-clock-rotate-left"></i><span>Audit log</span></a>
+                }
+            </nav>
+            <div class="sidebar-footer">
+                <a class="help-card" asp-controller="Chat" asp-action="Index"><span class="help-icon"><i class="fa-regular fa-circle-question"></i></span><span><strong>Need help?</strong><small>Talk to support</small></span><i class="fa-solid fa-arrow-up-right-from-square ms-auto"></i></a>
+                <div class="side-footer-meta">BricksAndBooks <span>v2.4.0</span></div>
+            </div>
+        </aside>
+        <div class="sidebar-scrim" data-sidebar-close></div>
+        <main class="main-area">
+            <header class="topbar">
+                <div class="d-flex align-items-center gap-3">
+                    <button class="mobile-menu d-lg-none" type="button" data-sidebar-open aria-label="Open navigation"><i class="fa-solid fa-bars"></i></button>
+                    <div class="topbar-brand-mark"><img src="~/images/bnb-logo.png" class="topbar-logo" alt="Bricks & Books logo" /><div><span class="eyebrow">Bricks & Books / @pageTitle</span><h1 class="topbar-title">@pageTitle</h1></div></div>
+                </div>
+                <div class="topbar-actions">
+                    @if (!(currentController == "Home" && currentAction == "Index"))
+                    {
+                        <a class="icon-button" asp-controller="Notification" asp-action="Index" aria-label="Notifications"><i class="fa-regular fa-bell"></i><span class="notification-ping"></span></a>
+                        <div class="topbar-divider"></div>
+                    }
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <div class="dropdown">
+                            <button type="button" class="profile-button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Open account menu"><span class="avatar">@initials</span><span class="profile-copy"><strong>@userName</strong><small>Account settings</small></span><i class="fa-solid fa-chevron-down"></i></button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
+                                <li><a class="dropdown-item" asp-controller="Account" asp-action="Manage"><i class="fa-regular fa-user"></i> Account</a></li>
+                                <li><a class="dropdown-item" asp-controller="Account" asp-action="ChangePassword"><i class="fa-solid fa-key"></i> Change password</a></li>
+                                <li><hr class="dropdown-divider" /></li>
+                                <li><form asp-controller="Account" asp-action="Logout" method="post"><button type="submit" class="dropdown-item"><i class="fa-solid fa-arrow-right-from-bracket"></i> Sign out</button>@Html.AntiForgeryToken()</form></li>
+                            </ul>
+                        </div>
+                    }
+                    else
+                    {
+                        <a class="btn btn-primary btn-sm" asp-controller="Account" asp-action="Login">Sign in</a>
+                    }
+                </div>
+            </header>
+            <div class="page-content">
+                @RenderBody()
+            </div>
+            <footer class="app-footer"><span>© 2026 Bricks &amp; Books</span><span>Accommodation, accounts, and residence operations.</span></footer>
+        </main>
+    </div>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        var firebaseConfig = new
+        {
+            apiKey = Configuration["Firebase:ApiKey"],
+            authDomain = Configuration["Firebase:AuthDomain"],
+            projectId = Configuration["Firebase:ProjectId"],
+            storageBucket = Configuration["Firebase:StorageBucket"],
+            messagingSenderId = Configuration["Firebase:MessagingSenderId"],
+            appId = Configuration["Firebase:AppId"],
+            measurementId = Configuration["Firebase:MeasurementId"],
+            vapidKey = Configuration["Firebase:VapidKey"]
+        };
+        <script>window.bricksAndBooksFirebaseConfig = @Html.Raw(JsonSerializer.Serialize(firebaseConfig));</script>
+        <script type="module" src="~/js/firebase-messaging.js" asp-append-version="true"></script>
+    }
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

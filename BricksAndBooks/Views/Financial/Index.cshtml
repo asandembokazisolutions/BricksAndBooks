@@ -1,0 +1,42 @@
+@model BricksAndBooks.Models.ViewModels.FinancialViewModel
+@{
+    ViewData["Title"] = "Finance Operations";
+}
+
+<section class="workspace-hero mb-4">
+    <div class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-end gap-4">
+        <div>
+            <span class="eyebrow">Finance workspace</span>
+            <h2 class="mt-2 mb-2">Collections with clarity.</h2>
+            <p class="text-muted mb-0">Review incoming payments, follow up on customer balances, manage accounts, and keep the residence ledger current.</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2"><a asp-action="Transactions" class="btn btn-primary"><i class="fa-solid fa-arrow-right-arrow-left me-2"></i>Review payments</a><a asp-controller="PaymentAnomaly" asp-action="Index" class="btn btn-outline-primary"><i class="fa-solid fa-shield-halved me-2"></i>Risk monitor</a></div>
+    </div>
+</section>
+
+<section class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3"><article class="card command-stat h-100"><span class="stat-label">Collected revenue</span><div class="stat-value">@Model.TotalRevenue.ToString("C")</div><div class="stat-trend up"><i class="fa-solid fa-circle-check me-1"></i>@Model.SuccessfulPaymentCount verified payment(s)</div></article></div>
+    <div class="col-sm-6 col-xl-3"><article class="card command-stat is-warning h-100"><span class="stat-label">Awaiting review</span><div class="stat-value">@Model.TotalPending.ToString("C")</div><div class="stat-trend">@Model.PendingPaymentCount pending payment(s)</div></article></div>
+    <div class="col-sm-6 col-xl-3"><article class="card command-stat is-slate h-100"><span class="stat-label">Failed value</span><div class="stat-value">@Model.TotalFailed.ToString("C")</div><div class="stat-trend down">@Model.FailedPaymentCount item(s) need attention</div></article></div>
+    <div class="col-sm-6 col-xl-3"><article class="card command-stat h-100"><span class="stat-label">Outstanding bills</span><div class="stat-value">@Model.OutstandingBills.ToString("C")</div><div class="stat-trend">Across @Model.CustomerCount customer account(s)</div></article></div>
+</section>
+
+<section class="row g-4">
+    <div class="col-xl-8">
+        <article class="card h-100"><div class="card-header command-panel-heading"><div><span class="eyebrow">Live payment register</span><h3>Latest payment activity</h3></div><a asp-action="Transactions" class="btn btn-sm btn-light">All transactions</a></div><div class="table-responsive"><table class="table mb-0"><thead><tr><th>Reference</th><th>Amount</th><th>Received</th><th>Status</th><th></th></tr></thead><tbody>
+        @foreach (var payment in Model.RecentPayments)
+        {
+            <tr><td><strong>@payment.TransactionReferenceId</strong></td><td class="fw-semibold">@payment.Amount.ToString("C")</td><td>@payment.PaymentDate.ToLocalTime().ToString("dd MMM yyyy, HH:mm")</td><td><span class="badge @(payment.Status == BricksAndBooks.Models.PaymentStatus.Successful ? "bg-success" : payment.Status == BricksAndBooks.Models.PaymentStatus.Failed ? "bg-danger" : "bg-warning")">@payment.Status</span></td><td class="text-end"><a asp-action="TransactionDetails" asp-route-id="@payment.Id" class="btn btn-sm btn-outline-primary">Open</a></td></tr>
+        }
+        @if (!Model.RecentPayments.Any()) { <tr><td colspan="5" class="text-center text-muted py-5">No payment activity has been recorded yet.</td></tr> }
+        </tbody></table></div></article>
+    </div>
+    <div class="col-xl-4">
+        <article class="card h-100"><div class="card-body"><div class="command-panel-heading mb-3"><div><span class="eyebrow">Work queue</span><h3>Finance tools</h3></div></div><div class="d-grid gap-2">
+            <a asp-action="Customers" class="workspace-quick-action"><i class="fa-solid fa-users"></i><span><strong>Customer accounts</strong><small>Create, update, reset passwords, and review billing.</small></span></a>
+            <a asp-controller="Payment" asp-action="Index" class="workspace-quick-action"><i class="fa-solid fa-receipt"></i><span><strong>Payment register</strong><small>Verify transactions and trace payment details.</small></span></a>
+            <a asp-controller="Reporting" asp-action="Index" class="workspace-quick-action"><i class="fa-solid fa-file-invoice-dollar"></i><span><strong>Financial reports</strong><small>Open revenue and occupancy reporting.</small></span></a>
+            <a asp-controller="Search" asp-action="Index" class="workspace-quick-action"><i class="fa-solid fa-magnifying-glass"></i><span><strong>Global search</strong><small>Find a customer, bill, payment, or unit.</small></span></a>
+        </div></div></article>
+    </div>
+</section>

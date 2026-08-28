@@ -1,0 +1,108 @@
+@model BricksAndBooks.Models.ViewModels.CustomerDashboardViewModel
+@{
+    ViewData["Title"] = User.IsInRole("Student") ? "Student Dashboard" : "Resident Dashboard";
+    var firstName = Model.User?.FirstName ?? "there";
+    var payableBill = Model.RecentBills.FirstOrDefault(bill => bill.Status != BricksAndBooks.Models.BillStatus.Paid && bill.Status != BricksAndBooks.Models.BillStatus.Cancelled);
+    var hasOpenBalance = Model.OutstandingBalance > 0;
+}
+
+<section class="resident-hero mb-4">
+    <div class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-end gap-4">
+        <div>
+            <span class="eyebrow">@(User.IsInRole("Student") ? "Student residence" : "Resident self-service")</span>
+            <h2 class="mt-2 mb-2">Good to see you, @firstName.</h2>
+            <p class="resident-hero-copy mb-0">Everything for your residence in one place — accommodation, bills, payments, service requests, and messages.</p>
+        </div>
+        <div class="resident-actions">
+            <a asp-controller="Payment" asp-action="MyBills" class="btn btn-primary"><i class="fa-solid fa-wallet me-2"></i>View my bills</a>
+            <a asp-controller="Chat" asp-action="Create" class="btn btn-outline-primary"><i class="fa-regular fa-message me-2"></i>Contact support</a>
+        </div>
+    </div>
+    <div class="resident-summary">
+        <div class="resident-summary-item"><span>Account balance</span><strong>@Model.OutstandingBalance.ToString("C")</strong></div>
+        <div class="resident-summary-item"><span>Residence</span><strong>@(Model.Accommodation?.Name ?? "Not allocated")</strong></div>
+        <div class="resident-summary-item"><span>Unit</span><strong>@(Model.Unit?.UnitNumber ?? "Awaiting allocation")</strong></div>
+        <div class="resident-summary-item"><span>Messages</span><strong>@Model.UnreadMessages unread</strong></div>
+    </div>
+</section>
+
+@if (payableBill != null)
+{
+    <section class="alert alert-warning mb-4">
+        <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+            <div>
+                <strong><i class="fa-solid fa-circle-exclamation me-2"></i>@(payableBill.IsOverdue ? "Your payment needs attention" : "You have a bill ready for payment")</strong>
+                <div class="small mt-1">@(new DateTime(payableBill.Year, payableBill.Month, 1).ToString("MMMM yyyy")) charges are open. Select the exact items you want to pay from your bill.</div>
+            </div>
+            <a asp-controller="Payment" asp-action="Process" class="btn btn-warning"><i class="fa-solid fa-arrow-right me-2"></i>Choose charges</a>
+        </div>
+        <div class="row row-cols-2 row-cols-md-4 g-2 mt-3 small">
+            <div class="col"><div class="bg-white rounded-3 p-2"><span class="d-block text-muted">Rent</span><strong>@payableBill.RentAmount.ToString("C")</strong></div></div>
+            <div class="col"><div class="bg-white rounded-3 p-2"><span class="d-block text-muted">Utilities</span><strong>@((payableBill.WaterAmount + payableBill.ElectricityAmount).ToString("C"))</strong></div></div>
+            <div class="col"><div class="bg-white rounded-3 p-2"><span class="d-block text-muted">Parking</span><strong>@((payableBill.ParkingAmount + payableBill.AdditionalVehicleAmount).ToString("C"))</strong></div></div>
+            <div class="col"><div class="bg-white rounded-3 p-2"><span class="d-block text-muted">Total</span><strong>@payableBill.TotalAmount.ToString("C")</strong></div></div>
+        </div>
+    </section>
+}
+else if (Model.Unit != null && !Model.RecentBills.Any())
+{
+    <section class="alert alert-info mb-4"><strong><i class="fa-solid fa-house-circle-check me-2"></i>Your accommodation is approved.</strong> Your first bill will appear here once the current tariff schedule is issued.</section>
+}
+
+<section class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3"><article class="card command-stat h-100"><span class="stat-label">Outstanding balance</span><div class="stat-value">@Model.OutstandingBalance.ToString("C")</div><div class="stat-trend @(hasOpenBalance ? "down" : "up")">@(hasOpenBalance ? "Review your open charges" : "You are up to date")</div></article></div>
+    <div class="col-sm-6 col-xl-3"><article class="card command-stat is-warning h-100"><span class="stat-label">Rent due</span><div class="stat-value">@Model.RentDue.ToString("C")</div><div class="stat-trend">Across current open bills</div></article></div>
+    <div class="col-sm-6 col-xl-3"><article class="card command-stat is-slate h-100"><span class="stat-label">Utilities due</span><div class="stat-value">@((Model.WaterDue + Model.ElectricityDue).ToString("C"))</div><div class="stat-trend">Water and electricity</div></article></div>
+    <div class="col-sm-6 col-xl-3"><article class="card command-stat h-100"><span class="stat-label">Parking due</span><div class="stat-value">@Model.ParkingDue.ToString("C")</div><div class="stat-trend">Registered vehicle charges</div></article></div>
+</section>
+
+<section class="row g-4">
+    <div class="col-xl-5">
+        <article class="card residence-status-card h-100">
+            <div class="card-body">
+                <div class="command-panel-heading mb-4"><div><span class="eyebrow">Your residence</span><h3>Accommodation status</h3></div><a asp-controller="AccommodationApplication" asp-action="Index" class="btn btn-sm btn-light">View request</a></div>
+                @if (Model.Unit != null)
+                {
+                    <span class="badge bg-success mb-3">Approved accommodation</span>
+                    <h4 class="h5 mb-1">@(Model.Accommodation?.Name ?? "University accommodation")</h4>
+                    <p class="text-muted mb-4">@(Model.Accommodation?.Address ?? "Residence address unavailable")</p>
+                    <div class="row g-3 mb-4"><div class="col-6"><span class="text-muted small d-block">Assigned unit</span><strong>@Model.Unit.UnitNumber</strong></div><div class="col-6"><span class="text-muted small d-block">Accommodation type</span><strong>@Model.Unit.OccupancyType</strong></div></div>
+                    <form asp-controller="AccommodationApplication" asp-action="RequestTermination" method="post">@Html.AntiForgeryToken()<button type="submit" class="btn btn-sm btn-outline-danger"><i class="fa-solid fa-arrow-right-from-bracket me-1"></i>Request termination</button></form>
+                }
+                else if (Model.LatestApplication != null)
+                {
+                    var statusClass = Model.LatestApplication.Status == BricksAndBooks.Models.AccommodationApplicationStatus.Denied ? "bg-danger" : Model.LatestApplication.Status == BricksAndBooks.Models.AccommodationApplicationStatus.TerminationRequested ? "bg-warning" : "bg-primary";
+                    <span class="badge @statusClass mb-3">@Model.LatestApplication.Status</span>
+                    <h4 class="h5 mb-2">@(Model.LatestApplication.Accommodation?.Name ?? "Accommodation request")</h4>
+                    <p class="text-muted mb-4">Your request is with the residence team. We will notify you when there is an update.</p>
+                    <a asp-controller="AccommodationApplication" asp-action="Index" class="btn btn-outline-primary btn-sm">Check request status</a>
+                }
+                else
+                {
+                    <div class="empty-state"><span class="empty-icon"><i class="fa-solid fa-house"></i></span><h4 class="h6">Find your place</h4><p class="text-muted small mb-3">Browse residences with available space and submit your request online.</p><a asp-controller="AccommodationApplication" asp-action="Apply" class="btn btn-primary btn-sm">Apply for accommodation</a></div>
+                }
+            </div>
+        </article>
+    </div>
+    <div class="col-xl-7">
+        <article class="card h-100">
+            <div class="card-header command-panel-heading"><div><span class="eyebrow">Billing</span><h3>Recent bills</h3></div><a asp-controller="Payment" asp-action="MyBills" class="btn btn-sm btn-light">All bills</a></div>
+            <div class="table-responsive"><table class="table mb-0"><thead><tr><th>Billing period</th><th>Deadline</th><th>Total</th><th>Status</th><th></th></tr></thead><tbody>
+            @foreach (var bill in Model.RecentBills)
+            {
+                <tr><td><strong>@(new DateTime(bill.Year, bill.Month, 1).ToString("MMMM yyyy"))</strong></td><td>@bill.DueDate.ToString("dd MMM yyyy")</td><td class="fw-semibold">@bill.TotalAmount.ToString("C")</td><td><span class="badge @(bill.Status == BricksAndBooks.Models.BillStatus.Paid ? "bg-success" : bill.IsOverdue ? "bg-danger" : "bg-warning")">@(bill.IsOverdue && bill.Status != BricksAndBooks.Models.BillStatus.Paid ? "Overdue" : bill.Status.ToString())</span></td><td class="text-end">@if (bill.Status != BricksAndBooks.Models.BillStatus.Paid && bill.Status != BricksAndBooks.Models.BillStatus.Cancelled) { <a asp-controller="Payment" asp-action="Process" class="btn btn-sm btn-primary">Pay charges</a> }</td></tr>
+            }
+            @if (!Model.RecentBills.Any()) { <tr><td colspan="5" class="text-center text-muted py-5">No bills have been issued to your account yet.</td></tr> }
+            </tbody></table></div>
+        </article>
+    </div>
+    <div class="col-lg-7">
+        <article class="card h-100"><div class="card-header command-panel-heading"><div><span class="eyebrow">Payment record</span><h3>Recent payments</h3></div><a asp-controller="Payment" asp-action="Index" class="btn btn-sm btn-light">Payment history</a></div><div class="table-responsive"><table class="table mb-0"><thead><tr><th>Reference</th><th>Amount</th><th>Date</th><th>Status</th></tr></thead><tbody>
+        @foreach (var payment in Model.RecentPayments) { <tr><td><strong>@payment.TransactionReferenceId</strong></td><td>@payment.Amount.ToString("C")</td><td>@payment.PaymentDate.ToLocalTime().ToString("dd MMM yyyy")</td><td><span class="badge @(payment.Status == BricksAndBooks.Models.PaymentStatus.Successful ? "bg-success" : payment.Status == BricksAndBooks.Models.PaymentStatus.Failed ? "bg-danger" : "bg-warning")">@payment.Status</span></td></tr> }
+        @if (!Model.RecentPayments.Any()) { <tr><td colspan="4" class="text-center text-muted py-5">You do not have any payment records yet.</td></tr> }
+        </tbody></table></div></article>
+    </div>
+    <div class="col-lg-5">
+        <article class="card h-100"><div class="card-body"><div class="command-panel-heading mb-2"><div><span class="eyebrow">Stay connected</span><h3>Updates and support</h3></div></div><a class="activity-link" asp-controller="Notification" asp-action="Index"><span class="activity-icon"><i class="fa-regular fa-bell"></i></span><span><strong>@Model.UnreadNotifications unread notification(s)</strong><small class="d-block text-muted">Payment, accommodation, and service updates</small></span><i class="fa-solid fa-chevron-right ms-auto text-muted"></i></a><a class="activity-link" asp-controller="Chat" asp-action="Index"><span class="activity-icon"><i class="fa-regular fa-message"></i></span><span><strong>@Model.UnreadMessages unread message(s)</strong><small class="d-block text-muted">Messages from residence and finance staff</small></span><i class="fa-solid fa-chevron-right ms-auto text-muted"></i></a><a class="activity-link" asp-controller="Maintenance" asp-action="Index"><span class="activity-icon"><i class="fa-solid fa-wrench"></i></span><span><strong>Maintenance support</strong><small class="d-block text-muted">Report or track a residence issue</small></span><i class="fa-solid fa-chevron-right ms-auto text-muted"></i></a></div></article>
+    </div>
+</section>

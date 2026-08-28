@@ -1,0 +1,16 @@
+{
+  "fields": {
+    "email": { "stringValue": "finance@bricksandbooks.com" },
+    "userName": { "stringValue": "finance@bricksandbooks.com" },
+    "firstName": { "stringValue": "Financial" },
+    "lastName": { "stringValue": "Officer" },
+    "studentNumber": { "stringValue": "" },
+    "employeeNumber": { "stringValue": "" },
+    "isStudent": { "booleanValue": false },
+    "isStaff": { "booleanValue": false },
+    "isFinancialOfficer": { "booleanValue": true },
+    "isAdmin": { "booleanValue": false },
+    "role": { "stringValue": "financialOfficer" },
+    "status": { "stringValue": "active" }
+  }
+}

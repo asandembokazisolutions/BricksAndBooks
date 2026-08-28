@@ -1,0 +1,289 @@
+@model BricksAndBooks.Models.ViewModels.SearchViewModel
+
+@{
+    ViewData["Title"] = "Advanced Search";
+    var users = Model.Users ?? new List<BricksAndBooks.Models.ApplicationUser>();
+    var bills = Model.Bills ?? new List<BricksAndBooks.Models.Bill>();
+    var payments = Model.Payments ?? new List<BricksAndBooks.Models.Payment>();
+    var vehicles = Model.Vehicles ?? new List<BricksAndBooks.Models.Vehicle>();
+    var accommodations = Model.Accommodations ?? new List<BricksAndBooks.Models.Accommodation>();
+    var units = Model.Units ?? new List<BricksAndBooks.Models.Unit>();
+}
+
+<section class="workspace-hero search-hero" aria-labelledby="search-title">
+    <div>
+        <p class="eyebrow mb-2">Operations / Find a record</p>
+        <h1 id="search-title" class="mb-2">@ViewData["Title"]</h1>
+        <p class="mb-0">Search the records you are responsible for. Narrow the search when you already know the record type.</p>
+    </div>
+</section>
+
+<form asp-action="Index" method="post" class="search-form" aria-label="Search records">
+    <div class="row mb-3">
+        <div class="col-md-8">
+            <div class="form-group">
+                <label asp-for="SearchTerm" class="control-label"></label>
+                <input asp-for="SearchTerm" class="form-control" placeholder="Enter search term..." />
+                <span asp-validation-for="SearchTerm" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="form-group">
+                <label class="control-label"></label>
+                <button type="submit" class="btn btn-primary btn-block">Search</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <fieldset class="border p-2">
+                <legend class="w-auto px-2">Search In</legend>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="checkbox" asp-for="SearchIncludesAll" checked onchange="toggleAllCheckboxes(this)" />
+                    <label class="form-check-label" asp-for="SearchIncludesAll">All</label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="checkbox" asp-for="SearchIncludesUsers" />
+                    <label class="form-check-label" asp-for="SearchIncludesUsers">Users</label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="checkbox" asp-for="SearchIncludesBills" />
+                    <label class="form-check-label" asp-for="SearchIncludesBills">Bills</label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="checkbox" asp-for="SearchIncludesPayments" />
+                    <label class="form-check-label" asp-for="SearchIncludesPayments">Payments</label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="checkbox" asp-for="SearchIncludesVehicles" />
+                    <label class="form-check-label" asp-for="SearchIncludesVehicles">Vehicles</label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="checkbox" asp-for="SearchIncludesAccommodations" />
+                    <label class="form-check-label" asp-for="SearchIncludesAccommodations">Accommodations</label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="checkbox" asp-for="SearchIncludesUnits" />
+                    <label class="form-check-label" asp-for="SearchIncludesUnits">Units</label>
+                </div>
+            </fieldset>
+        </div>
+    </div>
+</form>
+
+@if (!string.IsNullOrEmpty(Model.SearchTerm)) {
+    <section class="search-results mt-4" aria-labelledby="search-results-title">
+        <div class="d-flex align-items-baseline justify-content-between gap-3 mb-3">
+            <h2 id="search-results-title" class="h4 mb-0">Results for “<strong>@Model.SearchTerm</strong>”</h2>
+            <span class="text-muted small">Select a result to inspect its record.</span>
+        </div>
+
+        @if (users.Any() || bills.Any() || payments.Any() || vehicles.Any() || accommodations.Any() || units.Any())
+        {
+            <div class="row">
+                @if (users.Any())
+                {
+                    <div class="col-md-2">
+                        <div class="card">
+                            <div class="card-header bg-primary text-white">
+                                <h5>Users (@users.Count)</h5>
+                            </div>
+                            <div class="card-body p-0">
+                                <ul class="list-group list-group-flush">
+                                    @foreach (var user in users)
+                                    {
+                                        <li class="list-group-item">
+                                            <div class="d-flex w-100 justify-content-between">
+                                                <h6 class="mb-1">@user.FirstName @user.LastName</h6>
+                                                <small>@(user.IsStudent ? "Student" : user.IsStaff ? "Staff" : user.IsFinancialOfficer ? "Financial Officer" : user.IsAdmin ? "Admin" : "User")</small>
+                                            </div>
+                                            <p class="mb-1">
+                                                <small>@user.Email</small><br />
+                                                @if (!string.IsNullOrWhiteSpace(user.StudentNumber))
+                                                {
+                                                    <span class="badge badge-info">Student: @user.StudentNumber</span>
+                                                }
+                                                @if (!string.IsNullOrWhiteSpace(user.EmployeeNumber))
+                                                {
+                                                    <span class="badge badge-secondary">Employee: @user.EmployeeNumber</span>
+                                                }
+                                            </p>
+                                            <small>@user.PhoneNumber</small>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                @if (bills.Any())
+                {
+                    <div class="col-md-2">
+                        <div class="card">
+                            <div class="card-header bg-success text-white">
+                                <h5>Bills (@bills.Count)</h5>
+                            </div>
+                            <div class="card-body p-0">
+                                <ul class="list-group list-group-flush">
+                                    @foreach (var bill in bills)
+                                    {
+                                        <li class="list-group-item">
+                                            <div class="d-flex w-100 justify-content-between">
+                                                <h6 class="mb-1">Bill #@bill.Id</h6>
+                                                <small class="text-muted">@bill.Month/@bill.Year</small>
+                                            </div>
+                                            <p class="mb-1">
+                                                <strong>@bill.Unit?.Accommodation?.Name - Unit @bill.Unit?.UnitNumber</strong><br />
+                                                <small>Total: $@bill.TotalAmount.ToString("0.00") | Status: @bill.Status</small>
+                                            </p>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                @if (payments.Any())
+                {
+                    <div class="col-md-2">
+                        <div class="card">
+                            <div class="card-header bg-info text-white">
+                                <h5>Payments (@payments.Count)</h5>
+                            </div>
+                            <div class="card-body p-0">
+                                <ul class="list-group list-group-flush">
+                                    @foreach (var payment in payments)
+                                    {
+                                        <li class="list-group-item">
+                                            <div class="d-flex w-100 justify-content-between">
+                                                <h6 class="mb-1">Payment #@payment.Id</h6>
+                                                <small class="text-muted">@payment.PaymentDate.ToString("MM/dd/yyyy")</small>
+                                            </div>
+                                            <p class="mb-1">
+                                                <strong>Amount: $@payment.Amount.ToString("0.00")</strong><br />
+                                                <small>Method: @payment.Method | Status: @payment.Status</small><br />
+                                                <small>Ref: @payment.TransactionReferenceId</small>
+                                            </p>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                @if (vehicles.Any())
+                {
+                    <div class="col-md-2">
+                        <div class="card">
+                            <div class="card-header bg-warning text-white">
+                                <h5>Vehicles (@vehicles.Count)</h5>
+                            </div>
+                            <div class="card-body p-0">
+                                <ul class="list-group list-group-flush">
+                                    @foreach (var vehicle in vehicles)
+                                    {
+                                        <li class="list-group-item">
+                                            <div class="d-flex w-100 justify-content-between">
+                                                <h6 class="mb-1">@vehicle.Make @vehicle.Model</h6>
+                                                <small class="text-muted">@vehicle.Colour</small>
+                                            </div>
+                                            <p class="mb-1">
+                                                <strong>Registration: @vehicle.RegistrationNumber</strong><br />
+                                                <small>Type: @vehicle.VehicleType</small>
+                                            </p>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                @if (accommodations.Any())
+                {
+                    <div class="col-md-2">
+                        <div class="card">
+                            <div class="card-header bg-danger text-white">
+                                <h5>Accommodations (@accommodations.Count)</h5>
+                            </div>
+                            <div class="card-body p-0">
+                                <ul class="list-group list-group-flush">
+                                    @foreach (var acc in accommodations)
+                                    {
+                                        <li class="list-group-item">
+                                            <div class="d-flex w-100 justify-content-between">
+                                                <h6 class="mb-1">@acc.Name</h6>
+                                                <small class="text-muted">@acc.Address</small>
+                                            </div>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                @if (units.Any())
+                {
+                    <div class="col-md-2">
+                        <div class="card">
+                            <div class="card-header bg-dark text-white">
+                                <h5>Units (@units.Count)</h5>
+                            </div>
+                            <div class="card-body p-0">
+                                <ul class="list-group list-group-flush">
+                                    @foreach (var unit in units)
+                                    {
+                                        <li class="list-group-item">
+                                            <div class="d-flex w-100 justify-content-between">
+                                                <h6 class="mb-1">Unit @unit.UnitNumber</h6>
+                                                <small class="text-muted">@unit.Accommodation?.Name</small>
+                                            </div>
+                                            <p class="mb-1">
+                                                <small>Capacity: @unit.Capacity | Available: @(unit.IsAvailable ? "Yes" : "No")</small>
+                                            </p>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-info">
+                No records matched “<strong>@Model.SearchTerm</strong>”. Try a shorter term or select more record types above.
+            </div>
+        }
+    </section>
+}
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+
+    <script>
+        function toggleAllCheckboxes(checkbox) {
+            var checkboxes = document.querySelectorAll('.form-check-input:not([asp-for="SearchIncludesAll"])');
+            checkboxes.forEach(function(cb) {
+                cb.checked = checkbox.checked;
+            });
+        }
+
+        // Also toggle the "All" checkbox when individual checkboxes are changed
+        document.addEventListener('change', function(e) {
+            if (e.target.classList.contains('form-check-input') &&
+                e.target.getAttribute('asp-for') !== 'SearchIncludesAll') {
+
+                var allCheckbox = document.querySelector('[asp-for="SearchIncludesAll"]');
+                var allChecked = document.querySelectorAll('.form-check-input:not([asp-for="SearchIncludesAll"]):checked').length ===
+                              document.querySelectorAll('.form-check-input:not([asp-for="SearchIncludesAll"])').length;
+                allCheckbox.checked = allChecked;
+            }
+        });
+    </script>
+}

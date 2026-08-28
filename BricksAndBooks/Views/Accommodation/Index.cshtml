@@ -1,0 +1,64 @@
+@model IEnumerable<BricksAndBooks.Models.Accommodation>
+
+@{
+    ViewData["Title"] = "Accommodation Management";
+}
+
+<h2>@ViewData["Title"]</h2>
+@if (TempData["UnitNavigationMessage"] != null)
+{
+    <div class="alert alert-info">@TempData["UnitNavigationMessage"]</div>
+}
+@if (User.IsInRole("Admin"))
+{
+    <p><a asp-action="Create" class="btn btn-success">Create New Accommodation</a></p>
+}
+<div class="table-responsive">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>
+                    @Html.DisplayNameFor(model => model.Name)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.Address)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.Description)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.CreatedAt)
+                </th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.Name)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Address)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Description)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.CreatedAt)
+            </td>
+            <td>
+                                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-info">Details</a>
+                @if (User.IsInRole("Admin"))
+                {
+                    <a asp-controller="Unit" asp-action="Index" asp-route-accommodationId="@item.Id" class="btn btn-sm btn-success">Manage units</a>
+                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-primary">Edit</a>
+
+                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-danger">Delete</a>
+                }
+            </td>
+        </tr>
+}
+        </tbody>
+    </table>
+</div>

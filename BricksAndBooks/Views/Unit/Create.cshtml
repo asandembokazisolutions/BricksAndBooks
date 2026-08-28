@@ -1,0 +1,39 @@
+@{
+    ViewData["Title"] = "Create Unit";
+    var accommodationId = ViewData["AccommodationId"] as int?;
+    var accommodationName = ViewData["AccommodationName"] as string;
+}
+
+<h2>@ViewData["Title"] - @accommodationName</h2>
+
+<form asp-action="Create" method="post">
+    <input type="hidden" name="accommodationId" value="@accommodationId" />
+    <div class="form-group">
+        <label class="control-label" for="unitNumber">Unit Number</label>
+        <input class="form-control" type="text" data-val="true" data-val-required="The Unit Number field is required." id="unitNumber" maxlength="10" name="unitNumber" />
+        <span class="text-danger field-validation-valid" data-valmsg-for="unitNumber" data-valmsg-replace="true"></span>
+    </div>
+    <div class="form-group">
+        <label class="control-label" for="capacity">Capacity</label>
+        <input class="form-control" type="number" data-val="true" data-val-required="The Capacity field is required." id="capacity" name="capacity" min="1" />
+        <span class="text-danger field-validation-valid" data-valmsg-for="capacity" data-valmsg-replace="true"></span>
+    </div>
+    <div class="form-group">
+        <label class="control-label" for="occupancyType">Unit type</label>
+        <select class="form-select" id="occupancyType" name="occupancyType">
+            <option value="Single">Single unit</option>
+            <option value="Shared">Shared unit</option>
+        </select>
+        <small class="text-muted">Single units are allocated to one resident; shared units can hold multiple residents up to the capacity.</small>
+    </div>
+    <div class="form-group">
+        <input type="submit" value="Create" class="btn btn-primary" />
+    </div>
+</form>
+<div>
+    <a asp-action="Index" asp-route-accommodationId="@accommodationId" class="btn btn-light">Back to Units</a>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

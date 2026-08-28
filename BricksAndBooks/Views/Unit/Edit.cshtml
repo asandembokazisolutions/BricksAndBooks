@@ -1,0 +1,47 @@
+@model BricksAndBooks.Models.Unit
+
+@{
+    ViewData["Title"] = "Edit Unit";
+    var accommodation = Model.Accommodation;
+    var accommodationName = accommodation?.Name ?? "Unknown";
+    var accommodationId = accommodation?.Id ?? 0;
+}
+
+<h2>@ViewData["Title"] - @accommodationName</h2>
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" name="id" value="@Model.Id" />
+    <input type="hidden" name="accommodationId" value="@accommodationId" />
+    <div class="form-group">
+        <label class="control-label" for="unitNumber">Unit Number</label>
+        <input class="form-control" type="text" data-val="true" data-val-required="The Unit Number field is required." id="unitNumber" maxlength="10" name="unitNumber" value="@Model.UnitNumber" />
+        <span class="text-danger field-validation-valid" data-valmsg-for="unitNumber" data-valmsg-replace="true"></span>
+    </div>
+    <div class="form-group">
+        <label class="control-label" for="capacity">Capacity</label>
+        <input class="form-control" type="number" data-val="true" data-val-required="The Capacity field is required." id="capacity" name="capacity" min="1" value="@Model.Capacity" />
+        <span class="text-danger field-validation-valid" data-valmsg-for="capacity" data-valmsg-replace="true"></span>
+    </div>
+    <div class="form-group">
+        <label class="control-label" for="occupancyType">Unit type</label>
+        <select class="form-select" id="occupancyType" name="occupancyType">
+            <option value="Single" selected="@(Model.OccupancyType == BricksAndBooks.Models.UnitOccupancyType.Single)">Single unit</option>
+            <option value="Shared" selected="@(Model.OccupancyType == BricksAndBooks.Models.UnitOccupancyType.Shared)">Shared unit</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label class="control-label">
+            <input type="checkbox" name="isAvailable" checked="@Model.IsAvailable" /> Is Available
+        </label>
+    </div>
+    <div class="form-group">
+        <input type="submit" value="Save" class="btn btn-primary" />
+    </div>
+</form>
+<div>
+    <a asp-action="Index" asp-route-accommodationId="@accommodationId" class="btn btn-light">Back to Units</a>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

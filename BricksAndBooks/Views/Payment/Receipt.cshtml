@@ -1,0 +1,37 @@
+@model BricksAndBooks.Models.ViewModels.PaymentReceiptViewModel
+@{
+    ViewData["Title"] = "Digital receipt";
+}
+<div class="row justify-content-center">
+    <div class="col-xl-8">
+        <div class="d-flex justify-content-between align-items-end mb-4 no-print">
+            <div><span class="eyebrow">Verified payment</span><h2 class="mb-1">Digital receipt</h2><p class="text-muted mb-0">Keep this itemised receipt for your accommodation payment records.</p></div>
+            <div class="d-flex gap-2"><a asp-action="DownloadReceipt" asp-route-id="@Model.Payment.Id" class="btn btn-outline-primary"><i class="fa-solid fa-download me-1"></i> Download</a><button type="button" class="btn btn-primary" onclick="window.print()"><i class="fa-solid fa-print me-1"></i> Print</button></div>
+        </div>
+        <div class="card shadow-sm receipt-card">
+            <div class="card-body p-4 p-lg-5">
+                <div class="d-flex justify-content-between align-items-start border-bottom pb-4 mb-4"><div><div class="brand-link receipt-brand mb-3"><img src="~/images/bnb-logo.png" class="receipt-brand-logo" alt="Bricks &amp; Books" /><span><strong>Bricks</strong><small>AND BOOKS</small></span></div><h3 class="h5 mb-1">Payment receipt</h3><p class="text-muted mb-0">UFS QwaQwa Estate Management</p></div><div class="text-end"><span class="badge bg-success mb-2">Verified payment</span><p class="text-muted small mb-0">@Model.Payment.PaymentDate.ToLocalTime().ToString("dd MMMM yyyy, HH:mm")</p></div></div>
+                <div class="row g-4 mb-4"><div class="col-md-6"><span class="eyebrow">Customer</span><p class="mb-1 fw-semibold">@Model.Customer?.FirstName @Model.Customer?.LastName</p><p class="text-muted small mb-0">@Model.CustomerIdentifier</p></div><div class="col-md-6"><span class="eyebrow">Accommodation</span><p class="mb-1 fw-semibold">@(Model.Accommodation?.Name ?? "Not recorded")</p><p class="text-muted small mb-0">Unit @(Model.Unit?.UnitNumber ?? "Not recorded")</p></div></div>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead><tr><th>Description</th><th>Period</th><th class="text-end">Amount</th></tr></thead>
+                        <tbody>
+                            @foreach (var allocation in Model.Allocations)
+                            {
+                                <tr><td>@allocation.ChargeType</td><td>@(new DateTime(allocation.Bill.Year, allocation.Bill.Month, 1).ToString("MMMM yyyy"))</td><td class="text-end">@allocation.Amount.ToString("C")</td></tr>
+                            }
+                            @if (!Model.Allocations.Any())
+                            {
+                                <tr><td colspan="3" class="text-muted">This is a legacy payment record without itemised allocations.</td></tr>
+                            }
+                        </tbody>
+                        <tfoot><tr><th colspan="2">Total paid</th><th class="text-end">@Model.Payment.Amount.ToString("C")</th></tr></tfoot>
+                    </table>
+                </div>
+                <div class="row g-3 mt-2"><div class="col-sm-6"><span class="text-muted small d-block">Transaction reference</span><strong>@Model.Payment.TransactionReferenceId</strong></div><div class="col-sm-6"><span class="text-muted small d-block">Payment method</span><strong>@Model.Payment.Method</strong></div><div class="col-sm-6"><span class="text-muted small d-block">Payment status</span><strong>@Model.Payment.Status</strong></div><div class="col-sm-6"><span class="text-muted small d-block">Receipt number</span><strong>BB-@Model.Payment.Id.ToString("D8")</strong></div></div>
+            </div>
+        </div>
+        <div class="text-center mt-4 no-print"><a asp-action="Details" asp-route-id="@Model.Payment.Id" class="btn btn-light">Back to payment details</a></div>
+    </div>
+</div>
+<style>@@media print { .no-print, .sidebar, .topbar, .app-footer { display: none !important; } .main-area { width: 100% !important; } .page-content { padding: 0 !important; } .receipt-card { box-shadow: none !important; border: 0 !important; } }</style>

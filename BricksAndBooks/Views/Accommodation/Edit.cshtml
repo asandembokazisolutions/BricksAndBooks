@@ -1,0 +1,41 @@
+@model BricksAndBooks.Models.Accommodation
+
+@{
+    ViewData["Title"] = "Edit";
+}
+
+<h2>@ViewData["Title"]</h2>
+<form asp-action="Edit" method="post" enctype="multipart/form-data">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <input type="hidden" asp-for="Id" />
+    <div class="form-group">
+        <label asp-for="Name" class="control-label"></label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="Address" class="control-label"></label>
+        <input asp-for="Address" class="form-control" />
+        <span asp-validation-for="Address" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="Description" class="control-label"></label>
+        <textarea asp-for="Description" class="form-control"></textarea>
+        <span asp-validation-for="Description" class="text-danger"></span>
+    </div>
+    <div class="form-group mb-3">
+        <label for="images" class="control-label">Add accommodation pictures</label>
+        <input id="images" name="images" type="file" class="form-control" accept=".jpg,.jpeg,.png,.webp" multiple />
+        <small class="text-muted">Up to 10 images, maximum 5 MB each. Existing pictures are kept.</small>
+    </div>
+    <div class="form-group">
+        <input type="submit" value="Save" class="btn btn-primary" />
+    </div>
+</form>
+<div>
+    <a asp-action="Index" class="btn btn-light">Back to List</a>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

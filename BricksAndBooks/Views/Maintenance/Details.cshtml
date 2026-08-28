@@ -1,0 +1,87 @@
+@model BricksAndBooks.Models.MaintenanceRequest
+@{
+    ViewData["Title"] = "Maintenance Request Details";
+    var attachmentPaths = (Model.AttachmentUrls ?? string.Empty)
+        .Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .ToList();
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+    <div>
+        <h2 class="mb-1">Maintenance Request #@Model.Id</h2>
+        <p class="text-muted mb-0">Submitted @Model.SubmittedAt.ToLocalTime().ToString("dd MMM yyyy, HH:mm")</p>
+    </div>
+    <div class="d-flex gap-2">
+        @if (User.IsInRole("Admin") || User.IsInRole("FinancialOfficer"))
+        {
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary"><i class="fa-solid fa-pen-to-square me-2"></i>Update request</a>
+        }
+        <a asp-action="Index" class="btn btn-light"><i class="fa-solid fa-arrow-left me-2"></i>Back to requests</a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <strong>Issue details</strong>
+                <span class="badge @(Model.Status == BricksAndBooks.Models.MaintenanceStatus.Resolved || Model.Status == BricksAndBooks.Models.MaintenanceStatus.Closed ? "bg-success" : "bg-warning text-dark")">@Model.Status</span>
+            </div>
+            <div class="card-body">
+                <div class="mb-4">
+                    <div class="small text-muted mb-1">Reported unit</div>
+                    <div class="fw-semibold">Unit @(Model.Unit?.UnitNumber ?? $"#{Model.UnitId}")</div>
+                </div>
+                <div class="mb-4">
+                    <div class="small text-muted mb-1">Category</div>
+                    <span class="badge text-bg-light border text-dark">@Model.Category</span>
+                </div>
+                <div>
+                    <div class="small text-muted mb-1">Description</div>
+                    <div style="white-space: pre-line;">@Model.Description</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white"><strong>Assignment</strong></div>
+            <div class="card-body">
+                <div class="small text-muted mb-1">Assigned to</div>
+                @if (Model.AssignedToUser != null)
+                {
+                    <div class="fw-semibold">@Model.AssignedToUser.FirstName @Model.AssignedToUser.LastName</div>
+                    <div class="small text-muted">@Model.AssignedToUser.Email</div>
+                }
+                else
+                {
+                    <div class="text-muted">Not assigned yet</div>
+                }
+                @if (Model.AssignedAt.HasValue)
+                {
+                    <div class="small text-muted mt-3">Assigned @Model.AssignedAt.Value.ToLocalTime().ToString("dd MMM yyyy, HH:mm")</div>
+                }
+            </div>
+        </div>
+        <div class="card shadow-sm">
+            <div class="card-header bg-white"><strong>Attachments</strong></div>
+            <div class="card-body">
+                @if (attachmentPaths.Any())
+                {
+                    <div class="d-grid gap-2">
+                        @for (var index = 0; index < attachmentPaths.Count; index++)
+                        {
+                            <a href="@attachmentPaths[index]" target="_blank" rel="noopener" class="btn btn-outline-secondary text-start">
+                                <i class="fa-solid fa-paperclip me-2"></i>Open attachment @(index + 1)
+                            </a>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <span class="text-muted">No files were attached to this request.</span>
+                }
+            </div>
+        </div>
+    </div>
+</div>

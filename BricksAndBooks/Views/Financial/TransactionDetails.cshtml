@@ -1,0 +1,71 @@
+@model BricksAndBooks.Models.Payment
+
+@{
+    ViewData["Title"] = "Transaction Details";
+}
+
+<h2>@ViewData["Title"]</h2>
+<div>
+    <h4>Transaction</h4>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Id)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Id)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.BillId)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.BillId)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Amount)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Amount)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Method)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Method)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Status)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Status)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.TransactionReferenceId)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.TransactionReferenceId)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.PaymentDate)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.PaymentDate)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.CreatedAt)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.CreatedAt)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.UpdatedAt)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.UpdatedAt)
+        </dd>
+    </dl>
+</div>
+<div>
+    <a asp-action="Transactions" class="btn btn-primary">Back to Transactions List</a>
+    <a asp-action="Index" class="btn btn-light">Back to Financial Overview</a>
+</div>

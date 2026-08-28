@@ -1,0 +1,62 @@
+@model IEnumerable<BricksAndBooks.Models.Vehicle>
+@{
+    ViewData["Title"] = "My Vehicles";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+    <div>
+        <h2 class="mb-1">My Vehicles</h2>
+        <p class="text-muted mb-0">Registered vehicles receive the configured monthly parking charge on your current accommodation bill.</p>
+    </div>
+    <a asp-action="Create" class="btn btn-primary"><i class="fa-solid fa-car-side me-2"></i>Register vehicle</a>
+</div>
+
+@if (TempData["StatusMessage"] is string statusMessage)
+{
+    <div class="alert alert-success d-flex flex-wrap align-items-center justify-content-between gap-2" role="alert">
+        <span><i class="fa-solid fa-circle-check me-2"></i>@statusMessage</span>
+        <a asp-controller="Payment" asp-action="MyBills" class="btn btn-sm btn-outline-success">View my bills</a>
+    </div>
+}
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th class="ps-3">Registration</th>
+                    <th>Make</th>
+                    <th>Model</th>
+                    <th>Colour</th>
+                    <th>Vehicle type</th>
+                    <th>Registered</th>
+                    <th class="text-end pe-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td class="ps-3"><strong>@item.RegistrationNumber</strong></td>
+                    <td>@item.Make</td>
+                    <td>@item.Model</td>
+                    <td>@item.Colour</td>
+                    <td>@item.VehicleType</td>
+                    <td>@item.RegisteredAt.ToLocalTime().ToString("dd MMM yyyy")</td>
+                    <td class="text-end pe-3">
+                        <div class="btn-group btn-group-sm" role="group" aria-label="Vehicle actions">
+                            <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-secondary">Details</a>
+                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-primary">Edit</a>
+                            <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-outline-danger">Delete</a>
+                        </div>
+                    </td>
+                </tr>
+            }
+            @if (!Model.Any())
+            {
+                <tr><td colspan="7" class="text-center text-muted py-5">No vehicles are registered on your account.</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

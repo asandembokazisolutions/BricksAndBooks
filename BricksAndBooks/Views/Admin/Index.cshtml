@@ -1,0 +1,45 @@
+@using System.Text.Json
+@{
+    ViewData["Title"] = "Administration";
+    var revenueLabels = ViewBag.RevenueLabels as List<string> ?? new List<string>();
+    var revenueValues = ViewBag.RevenueValues as List<decimal> ?? new List<decimal>();
+    var occupancyLabels = ViewBag.OccupancyLabels as List<string> ?? new List<string>();
+    var occupancyValues = ViewBag.OccupancyValues as List<double> ?? new List<double>();
+    var occupancyPercent = Model.TotalUnits == 0 ? 0 : Math.Round((double)Model.OccupiedUnits / Model.TotalUnits * 100, 0);
+}
+
+<section class="workspace-hero mb-4">
+    <div class="row align-items-end g-4">
+        <div class="col-xl-7"><span class="eyebrow">Bricks &amp; Books administration</span><h1 class="mt-2 mb-2">Run the residence with confidence.</h1><p class="text-muted mb-0">See availability, applications, billing activity, and operational risk in a single calm, focused workspace.</p></div>
+        <div class="col-xl-5"><div class="input-group bg-white rounded-3 p-1 border shadow-sm"><span class="input-group-text border-0 bg-transparent text-muted"><i class="fa-solid fa-magnifying-glass"></i></span><input class="form-control border-0" placeholder="Search customers, bills, residences..." aria-label="Search" /><a asp-controller="Search" asp-action="Index" class="btn btn-primary"><i class="fa-solid fa-arrow-right"></i></a></div></div>
+    </div>
+</section>
+
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-3 mb-3"><div><span class="eyebrow">Residence overview</span><h2 class="h4 mb-0 mt-1">Today at a glance</h2></div><div class="d-flex flex-wrap gap-2"><a asp-controller="AccommodationApplication" asp-action="Index" class="btn btn-light"><i class="fa-solid fa-clipboard-check me-2"></i>Applications</a><a asp-controller="Reporting" asp-action="Index" class="btn btn-primary"><i class="fa-solid fa-file-lines me-2"></i>Open reports</a></div></div>
+
+<section class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3"><article class="card command-stat h-100"><span class="stat-label">Accommodations</span><div class="stat-value">@Model.TotalAccommodations</div><div class="stat-trend"><i class="fa-solid fa-building me-1"></i>Registered residences</div></article></div>
+    <div class="col-sm-6 col-xl-3"><article class="card command-stat h-100"><span class="stat-label">Rooms available</span><div class="stat-value">@Model.AvailableUnits</div><div class="stat-trend">@Model.TotalUnits total units</div></article></div>
+    <div class="col-sm-6 col-xl-3"><article class="card command-stat is-slate h-100"><span class="stat-label">Occupied units</span><div class="stat-value">@Model.OccupiedUnits</div><div class="stat-trend">@occupancyPercent% current occupancy</div></article></div>
+    <div class="col-sm-6 col-xl-3"><article class="card command-stat is-warning h-100"><span class="stat-label">Payments to review</span><div class="stat-value">@Model.PendingPayments</div><div class="stat-trend">@Model.TotalPayments total payment(s)</div></article></div>
+</section>
+
+<section class="row g-4 mb-4">
+    <div class="col-xl-7"><article class="card h-100"><div class="card-header command-panel-heading"><div><span class="eyebrow">Financial activity</span><h3>Revenue by month</h3></div><span class="badge bg-success">Verified collections</span></div><div class="card-body"><canvas id="revenueChart" height="120"></canvas></div></article></div>
+    <div class="col-xl-5"><article class="card h-100"><div class="card-header command-panel-heading"><div><span class="eyebrow">Residence capacity</span><h3>Room availability</h3></div><a asp-controller="Accommodation" asp-action="Index" class="btn btn-sm btn-light">View residences</a></div><div class="card-body"><div class="d-flex align-items-center gap-4"><div class="availability-donut" style="--availability:@occupancyPercent%"><span>@occupancyPercent%<small>occupied</small></span></div><div class="small flex-grow-1"><div class="d-flex justify-content-between py-2 border-bottom"><span>Occupied</span><strong>@Model.OccupiedUnits</strong></div><div class="d-flex justify-content-between py-2 border-bottom"><span>Available</span><strong>@Model.AvailableUnits</strong></div><div class="d-flex justify-content-between py-2"><span>Total units</span><strong>@Model.TotalUnits</strong></div></div></div></div></article></div>
+</section>
+
+<section class="row g-4">
+    <div class="col-xl-7"><article class="card h-100"><div class="card-header command-panel-heading"><div><span class="eyebrow">Portfolio health</span><h3>Occupancy by accommodation</h3></div><a asp-controller="Accommodation" asp-action="Index" class="btn btn-sm btn-light">Manage residences</a></div><div class="card-body"><canvas id="occupancyChart" height="115"></canvas></div></article></div>
+    <div class="col-xl-5"><article class="card h-100"><div class="card-body"><div class="command-panel-heading mb-3"><div><span class="eyebrow">Quick actions</span><h3>Operations</h3></div></div><div class="d-grid gap-2"><a asp-controller="Accommodation" asp-action="Create" class="workspace-quick-action"><i class="fa-solid fa-building"></i><span><strong>Create accommodation</strong><small>Add a new residence and its unit details.</small></span></a><a asp-controller="AccommodationApplication" asp-action="Index" class="workspace-quick-action"><i class="fa-solid fa-clipboard-check"></i><span><strong>Review applications</strong><small>Assign available units to pending applicants.</small></span></a><a asp-action="TariffConfig" class="workspace-quick-action"><i class="fa-solid fa-tags"></i><span><strong>Manage tariffs</strong><small>Review rental, utility, and vehicle charges.</small></span></a><a asp-action="CalculateBills" class="workspace-quick-action"><i class="fa-solid fa-calculator"></i><span><strong>Calculate bills</strong><small>Issue the current month’s resident charges.</small></span></a><a asp-controller="PaymentAnomaly" asp-action="Index" class="workspace-quick-action"><i class="fa-solid fa-shield-halved"></i><span><strong>Open risk monitor</strong><small>Review duplicate and unusual payments.</small></span></a></div></div></article></div>
+</section>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const revenueCtx = document.getElementById('revenueChart');
+if (revenueCtx) new Chart(revenueCtx, { type: 'bar', data: { labels: @Html.Raw(JsonSerializer.Serialize(revenueLabels)), datasets: [{ label: 'Revenue', data: @Html.Raw(JsonSerializer.Serialize(revenueValues)), backgroundColor: '#0c8d7b', borderRadius: 8 }] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#eaf0ee' } }, x: { grid: { display: false } } } } });
+const occupancyCtx = document.getElementById('occupancyChart');
+if (occupancyCtx) new Chart(occupancyCtx, { type: 'bar', data: { labels: @Html.Raw(JsonSerializer.Serialize(occupancyLabels)), datasets: [{ label: 'Occupancy %', data: @Html.Raw(JsonSerializer.Serialize(occupancyValues)), backgroundColor: '#81cbbc', borderRadius: 7 }] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 100, grid: { color: '#eaf0ee' } }, x: { grid: { display: false } } } } });
+</script>
+}

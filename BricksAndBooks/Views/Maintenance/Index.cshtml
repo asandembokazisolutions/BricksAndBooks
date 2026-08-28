@@ -1,0 +1,91 @@
+@model IEnumerable<BricksAndBooks.Models.MaintenanceRequest>
+
+@{
+    ViewData["Title"] = "Maintenance Requests";
+}
+
+<h2>@ViewData["Title"]</h2>
+@if ((User.IsInRole("Student") || User.IsInRole("Staff")) && !User.IsInRole("Admin") && !User.IsInRole("FinancialOfficer"))
+{
+    <p>
+        <a asp-action="Create" class="btn btn-success">Request maintenance</a>
+    </p>
+}
+<div class="table-responsive">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>
+                    @Html.DisplayNameFor(model => model.Id)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.User.FirstName)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.User.LastName)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.Unit.UnitNumber)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.Category)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.Description)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.Status)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.SubmittedAt)
+                </th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.Id)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.User.FirstName)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.User.LastName)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Unit.UnitNumber)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Category)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Description)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Status)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.SubmittedAt)
+            </td>
+            <td>
+                @if (User.IsInRole("Admin") || User.IsInRole("FinancialOfficer"))
+                {
+                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-info">Details</a>
+                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-primary">Edit</a>
+                }
+                else
+                {
+                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-info">Details</a>
+                }
+                @if (User.IsInRole("Admin"))
+                {
+                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-danger">Delete</a>
+                }
+            </td>
+        </tr>
+}
+        </tbody>
+    </table>
+</div>

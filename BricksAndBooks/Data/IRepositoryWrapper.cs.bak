@@ -1,0 +1,33 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace BricksAndBooks.Data
+{
+    public interface IRepositoryWrapper
+    {
+        // Example: IAllowanceRepository Allowance { get; }
+        // We'll add our specific repositories here.
+
+        // For now, we'll leave it empty and then add properties for each repository we create.
+        // But note: the existing project might have had specific repositories, so we'll follow the pattern.
+
+        // We'll add:
+        IAccommodationRepository Accommodation { get; }
+        IUnitRepository Unit { get; }
+        ITariffRepository Tariff { get; }
+        IBillRepository Bill { get; }
+        IPaymentRepository Payment { get; }
+        IMaintenanceRequestRepository MaintenanceRequest { get; }
+        IChatMessageRepository ChatMessage { get; }
+        INotificationRepository Notification { get; }
+        IVehicleRepository Vehicle { get; }
+        IOccupancyRepository Occupancy { get; }
+        IReviewRepository Review { get; }
+        IAuditLogRepository AuditLog { get; }
+
+        void Save();
+    }
+}

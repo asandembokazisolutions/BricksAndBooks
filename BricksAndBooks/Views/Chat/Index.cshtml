@@ -1,0 +1,84 @@
+@model BricksAndBooks.Models.ViewModels.ChatViewModel
+@using System.Security.Claims
+@{
+    ViewData["Title"] = "Messages";
+}
+
+<div class="d-flex justify-content-between align-items-end mb-4">
+    <div>
+        <span class="eyebrow">Direct communication</span>
+        <h2 class="mb-1">Messages</h2>
+        <p class="text-muted mb-0">Choose a person on the left to open the conversation.</p>
+    </div>
+</div>
+
+<div class="chat-workspace card overflow-hidden">
+    <aside class="chat-contacts">
+        <div class="chat-contacts-header">
+            <strong>People</strong>
+            <span class="text-muted small">@Model.Contacts.Count</span>
+        </div>
+        <div class="chat-search px-3 pb-3">
+            <div class="input-group input-group-sm"><span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-magnifying-glass"></i></span><input class="form-control border-start-0" type="search" placeholder="Search people" data-chat-search /></div>
+        </div>
+        <div class="chat-contact-list">
+            @foreach (var contact in Model.Contacts)
+            {
+                <a class="chat-contact @(Model.SelectedContact?.Id == contact.Id ? "active" : "")" asp-action="Index" asp-route-contactId="@contact.Id" data-chat-contact data-name="@contact.DisplayName.ToLowerInvariant()">
+                    <span class="chat-avatar">@contact.Initials</span>
+                    <span class="chat-contact-copy"><strong>@contact.DisplayName</strong><small>@(contact.LastMessage.Length > 44 ? contact.LastMessage.Substring(0, 44) + "…" : contact.LastMessage)</small></span>
+                    <span class="chat-contact-meta">@(contact.LastSentAt.HasValue ? contact.LastSentAt.Value.ToLocalTime().ToString("HH:mm") : "") @if (contact.UnreadCount > 0) { <b>@contact.UnreadCount</b> }</span>
+                </a>
+            }
+            @if (!Model.Contacts.Any())
+            {
+                <div class="text-muted small p-4">There are no other user accounts to message yet.</div>
+            }
+        </div>
+    </aside>
+
+    <section class="chat-thread">
+        @if (Model.SelectedContact != null)
+        {
+            <header class="chat-thread-header">
+                <span class="chat-avatar">@Model.SelectedContact.Initials</span>
+                <div><strong>@Model.SelectedContact.DisplayName</strong><small>Direct message</small></div>
+            </header>
+            <div class="chat-messages" data-chat-messages>
+                @foreach (var message in Model.Messages)
+                {
+                    var sentByMe = message.SenderUserId == Model.CurrentUserId;
+                    <div class="chat-bubble-row @(sentByMe ? "mine" : "theirs")"><div class="chat-bubble"><p>@message.Content</p><small>@message.SentAt.ToLocalTime().ToString("dd MMM, HH:mm")</small></div></div>
+                }
+                @if (!Model.Messages.Any())
+                {
+                    <div class="chat-empty-thread"><i class="fa-regular fa-comments"></i><strong>Start the conversation</strong><span>Send a message to @Model.SelectedContact.DisplayName.</span></div>
+                }
+            </div>
+            <form asp-action="Send" method="post" class="chat-composer">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="recipientUserId" value="@Model.SelectedContact.Id" />
+                <textarea name="content" class="form-control" rows="1" maxlength="2000" placeholder="Write a message to @Model.SelectedContact.DisplayName..." required></textarea>
+                <button class="btn btn-primary rounded-circle chat-send" type="submit" aria-label="Send message"><i class="fa-solid fa-paper-plane"></i></button>
+            </form>
+        }
+        else
+        {
+            <div class="chat-no-selection"><i class="fa-regular fa-message"></i><h3>Select a person</h3><p>Choose someone from the People list to view the conversation.</p></div>
+        }
+    </section>
+</div>
+
+@section Scripts {
+    <script>
+        const search = document.querySelector('[data-chat-search]');
+        search?.addEventListener('input', () => {
+            const value = search.value.toLowerCase().trim();
+            document.querySelectorAll('[data-chat-contact]').forEach((contact) => {
+                contact.classList.toggle('d-none', !contact.dataset.name.includes(value));
+            });
+        });
+        const messages = document.querySelector('[data-chat-messages]');
+        if (messages) messages.scrollTop = messages.scrollHeight;
+    </script>
+}

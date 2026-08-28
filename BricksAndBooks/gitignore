@@ -1,0 +1,68 @@
+# Build output and generated tooling files
+bin/
+obj/
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Local application configuration and secrets
+appsettings.Development.json
+appsettings.*.local.json
+appsettings.Local.json
+appsettings.*.secret.json
+secrets.json
+secrets.*.json
+.env
+.env.*
+*.env
+!.env.example
+
+# Cloud credentials and service-account files
+serviceAccount*.json
+service-account*.json
+*service-account*.json
+*firebase-admin*.json
+firebase-adminsdk-*.json
+credentials*.json
+*credentials*.json
+
+# Private keys, certificates, and signing material
+*.pem
+*.key
+*.p12
+*.pfx
+*.cer
+*.crt
+*.der
+
+# Local databases, exports, logs, and temporary files
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+*.log
+logs/
+temp/
+tmp/
+*.tmp
+*.bak
+*.backup
+*.orig
+
+# Local developer/runtime files
+Properties/launchSettings.json
+Uploads/
+App_Data/
+
+# Operating-system files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Keep shared, non-secret application configuration tracked.
+!appsettings.json

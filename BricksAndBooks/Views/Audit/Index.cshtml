@@ -1,0 +1,16 @@
+@model IEnumerable<BricksAndBooks.Models.AuditLog>
+@{
+    ViewData["Title"] = "Audit Log";
+    var query = Context.Request.Query["query"].ToString();
+}
+<div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-end gap-3 mb-4">
+    <div><span class="eyebrow">Administration</span><h2 class="mb-1">Audit log</h2><p class="text-muted mb-0">Recent sensitive system actions. Records are system-generated and not editable through the web interface.</p></div>
+    <form method="get" class="d-flex gap-2"><input name="query" value="@query" class="form-control" placeholder="Search action, record, or actor" /><button class="btn btn-outline-primary" type="submit">Search</button></form>
+</div>
+<div class="card shadow-sm"><div class="table-responsive"><table class="table mb-0"><thead><tr><th>Timestamp</th><th>Actor ID</th><th>Action</th><th>Record</th><th>Change details</th></tr></thead><tbody>
+@foreach (var log in Model)
+{
+    <tr><td>@log.Timestamp.ToLocalTime().ToString("dd MMM yyyy HH:mm:ss")</td><td class="text-muted small">@log.UserId</td><td><span class="badge bg-primary">@log.Action</span></td><td>@log.EntityType #@log.EntityId</td><td class="text-muted">@log.Changes</td></tr>
+}
+@if (!Model.Any()) { <tr><td colspan="5" class="text-center text-muted py-5">No audit records match your search.</td></tr> }
+</tbody></table></div></div>

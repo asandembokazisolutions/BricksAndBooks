@@ -1,0 +1,48 @@
+@model IEnumerable<BricksAndBooks.Models.Notification>
+
+@{
+    ViewData["Title"] = "Notifications";
+}
+
+<section class="workspace-hero notification-hero" aria-labelledby="notifications-title">
+    <div>
+        <p class="eyebrow mb-2">Updates / Keep informed</p>
+        <h1 id="notifications-title" class="mb-2">@ViewData["Title"]</h1>
+        <p class="mb-0">Important account, payment, maintenance, and message updates appear here.</p>
+    </div>
+</section>
+<div class="mb-3 notification-toolbar">
+    <a asp-action="Index" class="btn btn-outline-secondary">Refresh</a>
+</div>
+<div class="notification-list" aria-live="polite">
+@foreach (var notification in Model.OrderByDescending(n => n.CreatedAt))
+{
+    <article class="notification-item @(notification.IsRead ? "is-read" : "is-unread")">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <strong>@notification.Title</strong>
+            </div>
+            <small class="text-muted">@notification.CreatedAt.ToString("g")</small>
+        </div>
+        <p class="mb-1">@notification.Message</p>
+        <div class="d-flex flex-wrap gap-2 align-items-center mt-2">
+            @if (!notification.IsRead)
+            {
+                <span class="badge bg-success">Unread</span>
+                <form asp-action="MarkAsRead" asp-route-id="@notification.Id" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-sm btn-outline-success"><i class="fa-solid fa-check me-1"></i>Read</button>
+                </form>
+            }
+            else
+            {
+                <span class="badge bg-secondary">Read</span>
+            }
+            @if (!string.IsNullOrEmpty(notification.Url))
+            {
+                <a href="@notification.Url" class="btn btn-sm btn-outline-primary">View Details</a>
+            }
+        </div>
+    </article>
+}
+</div>
