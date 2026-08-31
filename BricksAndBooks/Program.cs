@@ -8,6 +8,7 @@ using Google.Api.Gax.Grpc;
 using Google.Cloud.Firestore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -49,6 +50,13 @@ builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
         .AddInterceptors(serviceProvider.GetRequiredService<FirestoreSaveChangesInterceptor>()))
     .AddScoped<IRepositoryWrapper, RepositoryWrapper>();
 
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 builder.Services.AddControllersWithViews();
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
@@ -86,6 +94,7 @@ builder.Services.AddScoped<PaymentAnomalyDetectionService>();
 builder.Services.AddScoped<AuditService>();
 
 var app = builder.Build();
+app.UseForwardedHeaders();
 
 // Rebuild the short-lived local cache from Firestore before the existing application seed runs.
 using (var scope = app.Services.CreateScope())
