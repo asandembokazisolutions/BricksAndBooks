@@ -1,18 +1,17 @@
-# Build stage
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-COPY BricksAndBooks.csproj ./
-RUN dotnet restore "BricksAndBooks.csproj"
+COPY BricksAndBooks/BricksAndBooks.csproj BricksAndBooks/
+RUN dotnet restore BricksAndBooks/BricksAndBooks.csproj
 
-COPY . ./
-RUN dotnet publish "BricksAndBooks.csproj" \
+COPY BricksAndBooks/ BricksAndBooks/
+WORKDIR /src/BricksAndBooks
+RUN dotnet publish BricksAndBooks.csproj \
     --configuration Release \
     --output /app/publish \
     --no-restore \
     --property:UseAppHost=false
 
-# Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
 
