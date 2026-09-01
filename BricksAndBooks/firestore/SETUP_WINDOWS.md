@@ -119,11 +119,13 @@ accommodationApplications/{applicationId}
 occupancies/{occupancyId}
 bills/{billId}
 payments/{paymentId}
+paymentAllocations/{allocationId}
 maintenanceRequests/{requestId}
 notifications/{notificationId}
+passwordResetRequests/{requestId}  (server-only)
 vehicles/{vehicleId}
 reviews/{reviewId}
-chatThreads/{threadId}/messages/{messageId}
+chatMessages/{messageId}
 auditLogs/{auditLogId}
 ```
 
@@ -158,9 +160,11 @@ The `accommodations` collection will immediately appear. Once the web or Android
 
 ## Part 7 — Connect the existing web project
 
-The current web project uses SQL Server and Entity Framework Core. It must be changed in code before it can read from or write to Firestore. Do **not** remove the SQL Server database until the Firestore migration is built, tested, and the data is copied successfully.
+The MVC application already uses Firestore as its durable data store. It keeps Entity Framework Core's in-memory provider only as a short-lived compatibility cache for existing MVC and ASP.NET Identity code; on startup, the cache is rebuilt from Firestore and every subsequent save is persisted to Firestore.
 
-The web-project migration is separate from creating the Firestore database. It requires replacing the current SQL repositories and ASP.NET Identity storage with Firestore queries and Firebase Authentication integration, or temporarily keeping SQL Server only for legacy identity while Firestore becomes the source of application data.
+Password-reset requests are stored as `passwordResetRequests/{requestId}`. Each record contains the requester’s internal user ID, request timestamp, status, and—once completed—the resolver’s user ID and resolution timestamp. The collection is intentionally **server-only**: the browser and mobile-client rules deny every operation, while the application accesses it through server credentials. Do not store temporary passwords or password-reset tokens in Firestore.
+
+For local development, set `GOOGLE_APPLICATION_CREDENTIALS` to an uncommitted Firebase service-account JSON file and configure `Firebase:ProjectId` (plus `Firebase:DatabaseId` when a non-default database is used).
 
 ## Final checks
 
@@ -172,6 +176,7 @@ The web-project migration is separate from creating the Firestore database. It r
 | Firestore → Rules | The supplied rules are published. |
 | Firestore → Indexes | The requested indexes are building or enabled. |
 | Firestore → Data → accommodations | The `demo-accommodation-001` record is visible after Part 5. |
+| Password reset workflow | Submit **Forgot password?** for a real account. A `passwordResetRequests` document appears after the application starts with valid server credentials; the document moves from `Pending` to `Completed` when a reviewer issues a temporary password. |
 
 ## References
 

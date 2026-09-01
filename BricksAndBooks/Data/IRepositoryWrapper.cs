@@ -22,6 +22,7 @@ namespace BricksAndBooks.Data
         IRepositoryBase<Occupancy> Occupancy { get; }
         IRepositoryBase<Review> Review { get; }
         IRepositoryBase<AuditLog> AuditLog { get; }
+        IRepositoryBase<PasswordResetRequest> PasswordResetRequest { get; }
 
         void Save();
     }

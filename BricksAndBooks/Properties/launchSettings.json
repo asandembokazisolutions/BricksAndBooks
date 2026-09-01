@@ -15,8 +15,7 @@
       "launchBrowser": true,
       "applicationUrl": "http://localhost:5163",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development",
-        "GOOGLE_APPLICATION_CREDENTIALS": "G:\\FinalYearModules\\2nd Sem\\CSIQ3784-Project\\Final Version\\Firebase\\bricks-and-books-firebase-adminsdk-fbsvc-e9d85ab276.json"
+        "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },
     "https": {
@@ -25,16 +24,14 @@
       "launchBrowser": true,
       "applicationUrl": "https://localhost:7150;http://localhost:5163",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development",
-        "GOOGLE_APPLICATION_CREDENTIALS": "G:\\FinalYearModules\\2nd Sem\\CSIQ3784-Project\\Final Version\\Firebase\\bricks-and-books-firebase-adminsdk-fbsvc-e9d85ab276.json"
+        "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },
     "IIS Express": {
       "commandName": "IISExpress",
       "launchBrowser": true,
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development",
-        "GOOGLE_APPLICATION_CREDENTIALS": "G:\\FinalYearModules\\2nd Sem\\CSIQ3784-Project\\Final Version\\Firebase\\bricks-and-books-firebase-adminsdk-fbsvc-e9d85ab276.json"
+        "ASPNETCORE_ENVIRONMENT": "Development"
       }
     }
   }

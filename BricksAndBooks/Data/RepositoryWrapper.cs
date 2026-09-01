@@ -29,6 +29,7 @@ namespace BricksAndBooks.Data
         public IRepositoryBase<Occupancy> Occupancy => new RepositoryBase<Occupancy>(_repoContext);
         public IRepositoryBase<Review> Review => new RepositoryBase<Review>(_repoContext);
         public IRepositoryBase<AuditLog> AuditLog => new RepositoryBase<AuditLog>(_repoContext);
+        public IRepositoryBase<PasswordResetRequest> PasswordResetRequest => new RepositoryBase<PasswordResetRequest>(_repoContext);
 
         public void Save()
         {

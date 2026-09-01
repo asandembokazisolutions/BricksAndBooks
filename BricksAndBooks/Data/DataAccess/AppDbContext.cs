@@ -26,6 +26,7 @@ namespace BricksAndBooks.Data.DataAccess
         public DbSet<Review> Reviews { get; set; }
         public DbSet<Occupancy> Occupancies { get; set; }
         public DbSet<AccommodationApplication> AccommodationApplications { get; set; }
+        public DbSet<PasswordResetRequest> PasswordResetRequests { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -76,6 +77,23 @@ namespace BricksAndBooks.Data.DataAccess
 
             builder.Entity<AccommodationApplication>()
                 .HasIndex(a => new { a.UserId, a.Status });
+
+            // Reset requests remain as an audit trail; keep them even if the requesting or
+            // resolving user account is later removed.
+            builder.Entity<PasswordResetRequest>()
+                .HasOne(r => r.User)
+                .WithMany()
+                .HasForeignKey(r => r.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<PasswordResetRequest>()
+                .HasOne(r => r.ResolvedByUser)
+                .WithMany()
+                .HasForeignKey(r => r.ResolvedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<PasswordResetRequest>()
+                .HasIndex(r => r.Status);
 
             builder.Entity<AccommodationApplication>()
                 .HasIndex(a => new { a.AccommodationId, a.Status });

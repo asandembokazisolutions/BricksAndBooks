@@ -25,14 +25,14 @@ const batch = db.batch();
 
 batch.set(db.collection('settings').doc('app'), {
   appName: 'Bricks And Books',
-  schemaVersion: 1,
+  schemaVersion: 3,
   supportedRoles: ['student', 'staff', 'financialOfficer', 'admin'],
   createdAt: serverTimestamp,
   updatedAt: serverTimestamp,
 });
 
-batch.set(db.collection('schemaMetadata').doc('v1'), {
-  version: 1,
+batch.set(db.collection('schemaMetadata').doc('v3'), {
+  version: 3,
   projectId,
   collections: [
     'users',
@@ -43,14 +43,19 @@ batch.set(db.collection('schemaMetadata').doc('v1'), {
     'occupancies',
     'bills',
     'payments',
+    'paymentAllocations',
     'maintenanceRequests',
     'notifications',
+    'passwordResetRequests',
     'vehicles',
     'reviews',
-    'chatThreads',
+    'chatMessages',
     'auditLogs',
+    'settings',
+    'schemaMetadata',
   ],
   createdAt: serverTimestamp,
+  updatedAt: serverTimestamp,
 });
 
 batch.set(db.collection('users').doc(adminUid), {

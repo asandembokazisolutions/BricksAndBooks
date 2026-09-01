@@ -131,7 +131,7 @@ Models/            Domain entities and view models
 Views/             Razor MVC views
 wwwroot/           CSS, JavaScript, images, libraries, and service worker
 firestore/         Firestore rules, indexes, setup notes, and seed tooling
-docs/              Migration and validation documentation
+
 ```
 
 ## Security checklist
@@ -152,11 +152,7 @@ dotnet run
 
 Then verify registration and login, role-based navigation, accommodation application approval, payment and receipt flows, notification delivery, maintenance requests, messaging, and the relevant Firestore rules and indexes.
 
-## Existing documentation
+## Documentation
 
 - `firestore/SETUP_WINDOWS.md` — Firebase and Firestore setup procedure
-- `docs/FIRESTORE_MIGRATION.md` — Firestore migration notes
-- `docs/VALIDATION.md` — validation status and environment requirements
-- `ACCOMMODATION_WORKFLOW.md` — accommodation application and termination workflow
-- `SEEDING.md` — application seed-data guidance
-- `INTEGRATIONS.md` — integration notes
+- `firestore/PASSWORD_RESET_REQUESTS.md` — password-reset request collection, security model, and verification steps

@@ -109,6 +109,13 @@ service cloud.firestore {
       allow create, delete: if isOperationsStaff();
     }
 
+    // Contains account-recovery workflow data. The MVC application accesses this
+    // collection only through its Firestore Admin SDK credentials, which bypass rules.
+    // No mobile or browser client may read, create, update, or delete these records.
+    match /passwordResetRequests/{requestId} {
+      allow read, write: if false;
+    }
+
     match /vehicles/{vehicleId} {
       allow create: if signedIn()
         && request.resource.data.userId == request.auth.uid;

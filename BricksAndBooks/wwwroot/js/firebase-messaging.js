@@ -8,21 +8,15 @@ if (config?.apiKey && config?.projectId && config?.messagingSenderId && config?.
     const app = initializeApp(config);
 
     analyticsIsSupported().then((supported) => {
-        if (supported) {
-            getAnalytics(app);
-        }
+        if (supported) getAnalytics(app);
     }).catch(() => undefined);
 
     messagingIsSupported().then(async (supported) => {
-        if (!supported || !("serviceWorker" in navigator) || !("Notification" in window)) {
-            return;
-        }
+        if (!supported || !("serviceWorker" in navigator) || !("Notification" in window)) return;
 
         const registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
         const messaging = getMessaging(app);
 
-        // The VAPID key is intentionally optional until one is generated in Firebase Console.
-        // Without it, the app can still receive foreground messages when configured by the host.
         if (config.vapidKey) {
             const permission = await Notification.requestPermission();
             if (permission === "granted") {
@@ -30,7 +24,6 @@ if (config?.apiKey && config?.projectId && config?.messagingSenderId && config?.
                     vapidKey: config.vapidKey,
                     serviceWorkerRegistration: registration
                 });
-
                 if (token) {
                     window.dispatchEvent(new CustomEvent("bricksandbooks:fcm-token", { detail: token }));
                     console.debug("Firebase messaging token ready.");
@@ -39,12 +32,15 @@ if (config?.apiKey && config?.projectId && config?.messagingSenderId && config?.
         }
 
         onMessage(messaging, (payload) => {
-            const title = payload.notification?.title || "BricksAndBooks update";
-            const body = payload.notification?.body || "You have a new notification.";
-            window.dispatchEvent(new CustomEvent("bricksandbooks:fcm-message", { detail: payload }));
+            const data = payload.notification || payload.data || {};
+            const title = data.title || data.Title || "Bricks & Books update";
+            const body = data.body || data.message || data.Message || "You have a new notification.";
+            window.dispatchEvent(new CustomEvent("bricksandbooks:fcm-message", {
+                detail: { ...payload, notification: { ...data, title, body } }
+            }));
 
             if (Notification.permission === "granted" && document.visibilityState !== "visible") {
-                new Notification(title, { body, icon: "/favicon.ico" });
+                new Notification(title, { body, icon: "/images/ufs-logo.png" });
             }
         });
     }).catch((error) => {

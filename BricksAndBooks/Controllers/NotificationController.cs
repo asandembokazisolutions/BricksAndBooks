@@ -64,6 +64,51 @@ namespace BricksAndBooks.Controllers
             return Json(notifications);
         }
 
+        // GET: Notification/UnreadCount — lightweight polling source for the topbar bell badge.
+        [HttpGet]
+        public async Task<IActionResult> UnreadCount()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return Unauthorized();
+            }
+
+            var count = _repositoryWrapper.Notification.FindByCondition(n => n.UserId == user.Id && !n.IsRead).Count();
+
+            return Json(new { count });
+        }
+
+        // GET: Notification/Open/5 — opens the linked page and marks the notification read in one click.
+        public async Task<IActionResult> Open(int id)
+        {
+            var notificationQuery = _repositoryWrapper.Notification.FindByCondition(n => n.Id == id);
+            var notification = notificationQuery.FirstOrDefault();
+            var user = await _userManager.GetUserAsync(User);
+            if (notification == null)
+            {
+                return NotFound();
+            }
+            if (user == null || notification.UserId != user.Id)
+            {
+                return Forbid();
+            }
+
+            if (!notification.IsRead)
+            {
+                notification.IsRead = true;
+                notification.ReadAt = System.DateTime.UtcNow;
+                _repositoryWrapper.Notification.Update(notification);
+                _repositoryWrapper.Save();
+            }
+
+            if (!string.IsNullOrEmpty(notification.Url))
+            {
+                return Redirect(notification.Url);
+            }
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
         // GET: Notification/Details/5
         public async Task<IActionResult> Details(int id)
         {
@@ -108,6 +153,32 @@ namespace BricksAndBooks.Controllers
                 return RedirectToAction(nameof(Index));
             }
             return View(notification);
+        }
+
+        // POST: Notification/MarkAllAsRead
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MarkAllAsRead()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return Challenge();
+            }
+
+            var unread = _repositoryWrapper.Notification.FindByCondition(n => n.UserId == user.Id && !n.IsRead).ToList();
+            foreach (var notification in unread)
+            {
+                notification.IsRead = true;
+                notification.ReadAt = System.DateTime.UtcNow;
+                _repositoryWrapper.Notification.Update(notification);
+            }
+            if (unread.Count > 0)
+            {
+                _repositoryWrapper.Save();
+            }
+
+            return RedirectToAction(nameof(Index));
         }
 
         // We might want to have a method to mark all as read, but we'll leave it for now.

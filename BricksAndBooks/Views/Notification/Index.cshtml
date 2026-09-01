@@ -11,8 +11,15 @@
         <p class="mb-0">Important account, payment, maintenance, and message updates appear here.</p>
     </div>
 </section>
-<div class="mb-3 notification-toolbar">
+<div class="mb-3 notification-toolbar d-flex gap-2">
     <a asp-action="Index" class="btn btn-outline-secondary">Refresh</a>
+    @if (Model.Any(n => !n.IsRead))
+    {
+        <form asp-action="MarkAllAsRead" method="post" class="d-inline">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-success"><i class="fa-solid fa-check-double me-1"></i>Read all</button>
+        </form>
+    }
 </div>
 <div class="notification-list" aria-live="polite">
 @foreach (var notification in Model.OrderByDescending(n => n.CreatedAt))
@@ -29,10 +36,6 @@
             @if (!notification.IsRead)
             {
                 <span class="badge bg-success">Unread</span>
-                <form asp-action="MarkAsRead" asp-route-id="@notification.Id" method="post" class="d-inline">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-sm btn-outline-success"><i class="fa-solid fa-check me-1"></i>Read</button>
-                </form>
             }
             else
             {
@@ -40,7 +43,14 @@
             }
             @if (!string.IsNullOrEmpty(notification.Url))
             {
-                <a href="@notification.Url" class="btn btn-sm btn-outline-primary">View Details</a>
+                <a asp-action="Open" asp-route-id="@notification.Id" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-arrow-up-right-from-square me-1"></i>View Details</a>
+            }
+            else if (!notification.IsRead)
+            {
+                <form asp-action="MarkAsRead" asp-route-id="@notification.Id" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-sm btn-outline-success"><i class="fa-solid fa-check me-1"></i>Mark as read</button>
+                </form>
             }
         </div>
     </article>

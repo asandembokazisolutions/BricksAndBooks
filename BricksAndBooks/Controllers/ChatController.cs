@@ -72,17 +72,29 @@ namespace BricksAndBooks.Controllers
                     (m.SenderUserId == selectedContact.Id && m.RecipientUserId == user.Id)).ToList();
 
             var unreadMessages = selectedMessages.Where(m => m.RecipientUserId == user.Id && !m.IsRead).ToList();
-            foreach (var message in unreadMessages)
-            {
-                // The message was loaded with Sender and Recipient using the same DbContext.
-                // It is already tracked, so calling Update(message) would re-attach its user
-                // navigation graph and can create duplicate ApplicationUser tracking entries.
-                message.IsRead = true;
-                message.ReadAt = DateTime.UtcNow;
-            }
             if (unreadMessages.Count > 0)
             {
+                // These messages were loaded with .Include(Sender).Include(Recipient), so calling
+                // Update() on them would attach the whole graph — including the current user's
+                // ApplicationUser as Recipient, which collides with the copy UserManager already
+                // tracks on this same DbContext. Re-fetch bare (no Include) rows to update instead.
+                var unreadIds = unreadMessages.Select(m => m.Id).ToList();
+                var trackedMessages = _repositoryWrapper.ChatMessage.FindByCondition(m => unreadIds.Contains(m.Id)).ToList();
+                foreach (var trackedMessage in trackedMessages)
+                {
+                    trackedMessage.IsRead = true;
+                    trackedMessage.ReadAt = DateTime.UtcNow;
+                    _repositoryWrapper.ChatMessage.Update(trackedMessage);
+                }
                 _repositoryWrapper.Save();
+
+                // Reflect the read state on the objects the view actually renders.
+                foreach (var message in unreadMessages)
+                {
+                    message.IsRead = true;
+                    message.ReadAt = DateTime.UtcNow;
+                }
+
                 // The contact view model was built before the read-state update.
                 // Refresh the visible badge for the conversation just opened.
                 if (selectedContact != null)
@@ -98,6 +110,21 @@ namespace BricksAndBooks.Controllers
                 SelectedContact = selectedContact,
                 Messages = selectedMessages
             });
+        }
+
+        // GET: Chat/UnreadCount — lightweight polling source for the topbar message badge.
+        [HttpGet]
+        public async Task<IActionResult> UnreadCount()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return Unauthorized();
+            }
+
+            var count = _repositoryWrapper.ChatMessage.FindByCondition(m => m.RecipientUserId == user.Id && !m.IsRead).Count();
+
+            return Json(new { count });
         }
 
         // GET: Chat/Details/5
@@ -118,11 +145,19 @@ namespace BricksAndBooks.Controllers
             }
             if (chatMessage.RecipientUserId == user.Id && !chatMessage.IsRead)
             {
-                // chatMessage is already tracked by this DbContext; save the scalar changes
-                // without re-attaching the Sender and Recipient navigation graph.
+                // Re-fetch without the Sender/Recipient Include so Update() only attaches the
+                // ChatMessage row itself, not the ApplicationUser navigation graph (which could
+                // collide with entities UserManager is already tracking).
+                var trackedMessage = _repositoryWrapper.ChatMessage.FindByCondition(m => m.Id == id).FirstOrDefault();
+                if (trackedMessage != null)
+                {
+                    trackedMessage.IsRead = true;
+                    trackedMessage.ReadAt = DateTime.UtcNow;
+                    _repositoryWrapper.ChatMessage.Update(trackedMessage);
+                    _repositoryWrapper.Save();
+                }
                 chatMessage.IsRead = true;
                 chatMessage.ReadAt = DateTime.UtcNow;
-                _repositoryWrapper.Save();
             }
             return View(chatMessage);
         }

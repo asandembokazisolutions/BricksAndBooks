@@ -4,43 +4,43 @@
     ViewData["Title"] = "Revenue Report";
 }
 
-<h2>@ViewData["Title"]</h2>
-<p>
-    <a asp-action="Index" class="btn btn-outline-secondary">Back to Reports</a>
-</p>
-<div class="table-responsive">
-    <table class="table">
-        <thead>
-            <tr>
-                <th>
-                    @Html.DisplayNameFor(model => model.Year)
-                </th>
-                <th>
-                    @Html.DisplayNameFor(model => model.Month)
-                </th>
-                <th>
-                    @Html.DisplayNameFor(model => model.TotalAmount)
-                </th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.Year)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Month)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.TotalAmount)
-            </td>
-            <td>
-                <!-- We can add actions if needed -->
-            </td>
-        </tr>
-}
-        </tbody>
-    </table>
-</div>
+<section class="document-page" aria-labelledby="revenue-report-title">
+    <header class="document-header">
+        <img src="~/images/ufs-logo.png" class="document-logo" alt="University of the Free State logo" />
+        <div>
+            <p class="eyebrow mb-1">Bricks &amp; Books / Finance</p>
+            <h1 id="revenue-report-title" class="h2 mb-1">Revenue report</h1>
+            <p class="text-muted mb-0">Payment totals grouped by reporting period.</p>
+        </div>
+    </header>
+
+    <div class="report-toolbar d-flex justify-content-between align-items-center flex-wrap gap-2 mt-4 mb-3">
+        <span class="text-muted small">Generated @DateTime.Now.ToString("dd MMMM yyyy, HH:mm")</span>
+        <div class="d-flex gap-2">
+            <a asp-action="DownloadRevenue" class="btn btn-sm btn-primary"><i class="fa-solid fa-download me-1"></i>Download CSV</a>
+            <a asp-action="Index" class="btn btn-sm btn-outline-secondary">Back to reports</a>
+        </div>
+    </div>
+
+    <div class="table-responsive report-table-wrap">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>@Html.DisplayNameFor(model => model.Year)</th>
+                    <th>@Html.DisplayNameFor(model => model.Month)</th>
+                    <th class="text-end">@Html.DisplayNameFor(model => model.TotalAmount)</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>@Html.DisplayFor(modelItem => item.Year)</td>
+                        <td>@Html.DisplayFor(modelItem => item.Month)</td>
+                        <td class="text-end">@Html.DisplayFor(modelItem => item.TotalAmount)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>

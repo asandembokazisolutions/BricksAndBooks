@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using BricksAndBooks.Data;
 using BricksAndBooks.Models;
 using BricksAndBooks.Models.ViewModels;
 using BricksAndBooks.Infrastructure;
@@ -14,12 +17,14 @@ namespace BricksAndBooks.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly NotificationService _notificationService;
+        private readonly IRepositoryWrapper _repositoryWrapper;
 
-        public AccountController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, NotificationService notificationService)
+        public AccountController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, NotificationService notificationService, IRepositoryWrapper repositoryWrapper)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _notificationService = notificationService;
+            _repositoryWrapper = repositoryWrapper;
         }
 
         [HttpGet]
@@ -62,6 +67,140 @@ namespace BricksAndBooks.Controllers
 
             // If we got this far, something failed, redisplay form
             return View(model);
+        }
+
+        [HttpGet]
+        public IActionResult ForgotPassword() => View(new ForgotPasswordViewModel());
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            var user = await _userManager.FindByEmailAsync(model.Email);
+            if (user != null)
+            {
+                var alreadyPending = _repositoryWrapper.PasswordResetRequest
+                    .FindByCondition(r => r.UserId == user.Id && r.Status == PasswordResetRequestStatus.Pending)
+                    .Any();
+                if (!alreadyPending)
+                {
+                    _repositoryWrapper.PasswordResetRequest.Create(new PasswordResetRequest
+                    {
+                        UserId = user.Id
+                    });
+                    _repositoryWrapper.Save();
+
+                    // Let every admin/financial officer know a reset is waiting on them.
+                    var reviewers = (await _userManager.GetUsersInRoleAsync("Admin"))
+                        .Concat(await _userManager.GetUsersInRoleAsync("FinancialOfficer"))
+                        .DistinctBy(u => u.Id);
+                    foreach (var reviewer in reviewers)
+                    {
+                        _notificationService.CreateActivityNotification(
+                            reviewer.Id,
+                            "Password reset requested",
+                            $"{user.FirstName} {user.LastName} ({user.Email}) can't sign in and requested a password reset.",
+                            "/Account/PasswordResetRequests");
+                    }
+                }
+            }
+
+            // Always show the same confirmation, whether or not the email matched an account,
+            // so the form can't be used to check which emails are registered.
+            return RedirectToAction(nameof(ForgotPasswordConfirmation));
+        }
+
+        [HttpGet]
+        public IActionResult ForgotPasswordConfirmation() => View();
+
+        // GET: Account/PasswordResetRequests — pending reset requests waiting for review.
+        [HttpGet]
+        [Authorize(Roles = "Admin,FinancialOfficer")]
+        public IActionResult PasswordResetRequests()
+        {
+            var requests = _repositoryWrapper.PasswordResetRequest.FindAll()
+                .Where(r => r.Status == PasswordResetRequestStatus.Pending)
+                .OrderBy(r => r.RequestedAt)
+                .ToList();
+            return View(requests);
+        }
+
+        // POST: Account/ResolvePasswordResetRequest/5 — issues a new temporary password.
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,FinancialOfficer")]
+        public async Task<IActionResult> ResolvePasswordResetRequest(int id)
+        {
+            var request = _repositoryWrapper.PasswordResetRequest.FindByCondition(r => r.Id == id).FirstOrDefault();
+            if (request == null)
+            {
+                return NotFound();
+            }
+
+            var targetUser = await _userManager.FindByIdAsync(request.UserId);
+            var reviewer = await _userManager.GetUserAsync(User);
+            if (targetUser == null || reviewer == null)
+            {
+                return NotFound();
+            }
+
+            var temporaryPassword = GenerateTemporaryPassword();
+            var token = await _userManager.GeneratePasswordResetTokenAsync(targetUser);
+            var result = await _userManager.ResetPasswordAsync(targetUser, token, temporaryPassword);
+            if (!result.Succeeded)
+            {
+                TempData["StatusMessage"] = "Could not reset the password: " + string.Join(" ", result.Errors.Select(e => e.Description));
+                return RedirectToAction(nameof(PasswordResetRequests));
+            }
+
+            request.Status = PasswordResetRequestStatus.Completed;
+            request.ResolvedAt = DateTime.UtcNow;
+            request.ResolvedByUserId = reviewer.Id;
+            _repositoryWrapper.PasswordResetRequest.Update(request);
+            _repositoryWrapper.Save();
+
+            _notificationService.CreateActivityNotification(
+                targetUser.Id,
+                "Password reset",
+                "An administrator issued you a new temporary password. Sign in with it and change it right away from Account settings.",
+                "/Account/Login");
+
+            // The temporary password is shown once, here, so the admin can pass it on securely
+            // (in person or by phone) — it is never stored in plain text or emailed.
+            TempData["StatusMessage"] = $"Temporary password for {targetUser.Email}: {temporaryPassword}";
+            return RedirectToAction(nameof(PasswordResetRequests));
+        }
+
+        private static string GenerateTemporaryPassword()
+        {
+            const string upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+            const string lower = "abcdefghijkmnpqrstuvwxyz";
+            const string digits = "23456789";
+            const string special = "!@#$%?";
+            var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
+
+            char Pick(string alphabet)
+            {
+                var bytes = new byte[1];
+                rng.GetBytes(bytes);
+                return alphabet[bytes[0] % alphabet.Length];
+            }
+
+            var chars = new List<char> { Pick(upper), Pick(lower), Pick(digits), Pick(special) };
+            for (var i = 0; i < 6; i++)
+            {
+                chars.Add(Pick(upper + lower + digits));
+            }
+
+            // Shuffle so the fixed character classes aren't always in the same position.
+            var bytesForShuffle = new byte[chars.Count];
+            rng.GetBytes(bytesForShuffle);
+            return new string(chars.OrderBy(c => bytesForShuffle[chars.IndexOf(c)]).ToArray());
         }
 
         [HttpGet]

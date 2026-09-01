@@ -14,23 +14,28 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-    const title = payload.notification?.title || "BricksAndBooks update";
-    const options = {
-        body: payload.notification?.body || "You have a new notification.",
-        icon: "/favicon.ico",
-        data: payload.data || {}
-    };
+    const data = payload.notification || payload.data || {};
+    const title = data.title || data.Title || "Bricks & Books update";
+    const body = data.body || data.message || data.Message || "You have a new notification.";
+    const url = data.url || data.Url || data.link || data.Link || "/Notification";
 
-    self.registration.showNotification(title, options);
+    self.registration.showNotification(title, {
+        body,
+        icon: "/images/ufs-logo.png",
+        badge: "/images/ufs-logo.png",
+        data: { url }
+    });
 });
 
 self.addEventListener("notificationclick", (event) => {
     event.notification.close();
+    const url = event.notification.data?.url || "/Notification";
     event.waitUntil(clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
         const existing = clientList.find((client) => "focus" in client);
         if (existing) {
+            existing.navigate(url);
             return existing.focus();
         }
-        return clients.openWindow("/");
+        return clients.openWindow(url);
     }));
 });

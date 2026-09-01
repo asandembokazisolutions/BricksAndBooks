@@ -71,6 +71,7 @@
                     <a class="side-nav-link @(currentController == "User" ? "active" : "")" asp-controller="User" asp-action="Index"><i class="fa-solid fa-users"></i><span>Customer accounts</span></a>
                     <a class="side-nav-link @(currentController == "Reporting" ? "active" : "")" asp-controller="Reporting" asp-action="Index"><i class="fa-solid fa-file-invoice-dollar"></i><span>Reports</span></a>
                     <a class="side-nav-link @(currentController == "PaymentAnomaly" ? "active" : "")" asp-controller="PaymentAnomaly" asp-action="Index"><i class="fa-solid fa-shield-halved"></i><span>Risk monitor</span><span class="nav-dot"></span></a>
+                    <a class="side-nav-link @(currentController == "Account" && currentAction == "PasswordResetRequests" ? "active" : "")" asp-controller="Account" asp-action="PasswordResetRequests"><i class="fa-solid fa-key"></i><span>Password reset requests</span></a>
                 }
                 else if (User.Identity?.IsAuthenticated == true)
                 {
@@ -114,9 +115,10 @@
                     <div class="topbar-brand-mark"><img src="~/images/bnb-logo.png" class="topbar-logo" alt="Bricks & Books logo" /><div><span class="eyebrow">Bricks & Books / @pageTitle</span><h1 class="topbar-title">@pageTitle</h1></div></div>
                 </div>
                 <div class="topbar-actions">
-                    @if (!(currentController == "Home" && currentAction == "Index"))
+                    @if (User.Identity?.IsAuthenticated == true && !(currentController == "Home" && currentAction == "Index"))
                     {
-                        <a class="icon-button" asp-controller="Notification" asp-action="Index" aria-label="Notifications"><i class="fa-regular fa-bell"></i><span class="notification-ping"></span></a>
+                        <a class="icon-button" asp-controller="Chat" asp-action="Index" aria-label="Messages"><i class="fa-regular fa-message"></i><span class="icon-badge" id="chat-unread-badge" data-count="0">0</span></a>
+                        <a class="icon-button" asp-controller="Notification" asp-action="Index" aria-label="Notifications"><i class="fa-regular fa-bell"></i><span class="icon-badge" id="notification-unread-badge" data-count="0">0</span></a>
                         <div class="topbar-divider"></div>
                     }
                     @if (User.Identity?.IsAuthenticated == true)
@@ -140,6 +142,7 @@
             <div class="page-content">
                 @RenderBody()
             </div>
+            <div id="notification-toast-region" class="notification-toast-region" aria-live="polite" aria-atomic="true"></div>
             <footer class="app-footer"><span>© 2026 Bricks &amp; Books</span><span>Accommodation, accounts, and residence operations.</span></footer>
         </main>
     </div>

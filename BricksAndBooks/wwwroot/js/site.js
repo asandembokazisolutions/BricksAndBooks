@@ -3,26 +3,39 @@
     const scrim = document.querySelector('.sidebar-scrim');
     const openButtons = document.querySelectorAll('[data-sidebar-open]');
     const closeButtons = document.querySelectorAll('[data-sidebar-close]');
+
     const setSidebar = (open) => {
         if (!sidebar || !scrim) return;
         sidebar.classList.toggle('open', open);
         scrim.classList.toggle('open', open);
         document.body.classList.toggle('overflow-hidden', open);
     };
+
     openButtons.forEach(button => button.addEventListener('click', () => setSidebar(true)));
     closeButtons.forEach(button => button.addEventListener('click', () => setSidebar(false)));
-    window.addEventListener('resize', () => { if (window.innerWidth >= 992) setSidebar(false); });
+    window.addEventListener('resize', () => {
+        if (window.innerWidth >= 992) setSidebar(false);
+    });
 })();
 
+// Shared helper used by both the pop-up renderer and the polling fallback below.
+const readValue = (object, ...keys) => {
+    for (const key of keys) {
+        if (object && object[key] !== undefined && object[key] !== null) return object[key];
+    }
+    return '';
+};
 
-// Foreground notification pop-up: keep important updates visible without interrupting work.
+// Shared in-app pop-up for both notifications and messages.
 (() => {
-    const showNotificationPopup = (payload) => {
-        const notification = payload?.notification || payload?.data || payload || {};
-        const title = String(notification.title || 'Bricks & Books update');
-        const body = String(notification.body || notification.message || 'You have a new notification.');
-        const link = notification.url || '/Notification';
-        const type = String(notification.type || '').toLowerCase();
+    const importantTypes = new Set(['paymentfailed', 'rentdue', 'maintenanceupdate', 'message', 'chat']);
+
+    const showNotificationPopup = (payload = {}) => {
+        const source = payload.notification || payload.data || payload;
+        const title = String(readValue(source, 'title', 'Title') || 'Bricks & Books update');
+        const body = String(readValue(source, 'body', 'message', 'Message') || 'You have a new notification.');
+        const link = String(readValue(source, 'url', 'Url', 'link', 'Link') || '/Notification');
+        const type = String(readValue(source, 'type', 'Type') || '').replace(/\s+/g, '').toLowerCase();
         let popup = document.getElementById('notification-popup');
 
         if (!popup) {
@@ -31,27 +44,32 @@
             popup.className = 'notification-popup';
             popup.setAttribute('role', 'status');
             popup.setAttribute('aria-live', 'polite');
+            popup.setAttribute('aria-atomic', 'true');
             popup.innerHTML = `
-        <div class="notification-popup-accent" aria-hidden="true"></div>
-        <div class="notification-popup-content">
-          <div class="notification-popup-heading">
-            <span class="notification-popup-icon" aria-hidden="true"><i class="fa-regular fa-bell"></i></span>
-            <span class="notification-popup-label">New notification</span>
-            <button type="button" class="notification-popup-close" aria-label="Dismiss notification">&times;</button>
-          </div>
-          <strong class="notification-popup-title"></strong>
-          <p class="notification-popup-message"></p>
-          <a class="notification-popup-link" href="/Notification">Open notifications</a>
-        </div>`;
-            document.body.appendChild(popup);
-            popup.querySelector('.notification-popup-close').addEventListener('click', () => popup.classList.remove('is-visible'));
+                <div class="notification-popup-accent" aria-hidden="true"></div>
+                <div class="notification-popup-content">
+                    <div class="notification-popup-heading">
+                        <span class="notification-popup-icon" aria-hidden="true"><i class="fa-regular fa-bell"></i></span>
+                        <span class="notification-popup-label">New notification</span>
+                        <button type="button" class="notification-popup-close" aria-label="Dismiss notification">&times;</button>
+                    </div>
+                    <strong class="notification-popup-title"></strong>
+                    <p class="notification-popup-message"></p>
+                    <a class="notification-popup-link" href="/Notification">Open notifications</a>
+                </div>`;
+            const toastRegion = document.getElementById('notification-toast-region');
+            (toastRegion || document.body).appendChild(popup);
+            popup.querySelector('.notification-popup-close').addEventListener('click', () => {
+                popup.classList.remove('is-visible');
+                window.clearTimeout(window.bricksAndBooksNotificationTimer);
+            });
         }
 
-        popup.classList.toggle('is-important', ['paymentfailed', 'rentdue', 'maintenanceupdate'].includes(type));
+        popup.classList.toggle('is-important', importantTypes.has(type));
         popup.querySelector('.notification-popup-title').textContent = title;
         popup.querySelector('.notification-popup-message').textContent = body;
         const popupLink = popup.querySelector('.notification-popup-link');
-        popupLink.href = link;
+        popupLink.href = link || '/Notification';
         popupLink.textContent = link && link !== '/Notification' ? 'View related details' : 'Open notifications';
         popup.classList.remove('is-visible');
         window.requestAnimationFrame(() => popup.classList.add('is-visible'));
@@ -60,42 +78,108 @@
     };
 
     window.addEventListener('bricksandbooks:fcm-message', event => showNotificationPopup(event.detail));
+    window.addEventListener('bricksandbooks:message', event => showNotificationPopup(event.detail));
     window.bricksAndBooksShowNotification = showNotificationPopup;
 })();
 
-
-// Stored notification fallback: surfaces application messages even without an FCM token.
+// Stored notification fallback: works when Firebase foreground delivery is unavailable.
 (() => {
     const seenKey = 'bricksandbooks:seen-notification-ids';
     const readSeenIds = () => {
-        try { return new Set(JSON.parse(window.sessionStorage.getItem(seenKey) || '[]')); }
-        catch { return new Set(); }
+        try {
+            return new Set(JSON.parse(window.sessionStorage.getItem(seenKey) || '[]').map(String));
+        } catch {
+            return new Set();
+        }
     };
     const writeSeenIds = (ids) => {
-        try { window.sessionStorage.setItem(seenKey, JSON.stringify([...ids].slice(-50))); }
-        catch { /* Storage can be unavailable in private browsing. */ }
+        try {
+            window.sessionStorage.setItem(seenKey, JSON.stringify([...ids].slice(-50)));
+        } catch {
+            // Storage can be unavailable in private browsing.
+        }
     };
     const checkUnread = async () => {
         if (typeof window.bricksAndBooksShowNotification !== 'function') return;
         try {
-            const response = await fetch('/Notification/Unread', { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+            const response = await fetch('/Notification/Unread', {
+                credentials: 'same-origin',
+                headers: { Accept: 'application/json' },
+                cache: 'no-store'
+            });
             if (!response.ok || !(response.headers.get('content-type') || '').includes('application/json')) return;
             const notifications = await response.json();
             const seen = readSeenIds();
-            const next = notifications.find(item => item && item.Id != null && !seen.has(String(item.Id)));
-            if (!next) return;
-            seen.add(String(next.Id));
-            writeSeenIds(seen);
-            window.bricksAndBooksShowNotification({
-                notification: {
-                    title: next.Title,
-                    body: next.Message,
-                    type: next.Type,
-                    url: next.Url || '/Notification'
-                }
+            const next = notifications.find(item => {
+                const id = readValue(item, 'id', 'Id');
+                return id !== '' && !seen.has(String(id));
             });
-        } catch { /* A temporary network failure should not disrupt the page. */ }
+            if (!next) return;
+
+            const id = readValue(next, 'id', 'Id');
+            seen.add(String(id));
+            writeSeenIds(seen);
+            window.bricksAndBooksShowNotification({ notification: next });
+        } catch {
+            // A temporary network failure must not disrupt the page.
+        }
     };
-    window.setTimeout(checkUnread, 1200);
-    window.setInterval(checkUnread, 20000);
+
+    const startPolling = () => {
+        checkUnread();
+        window.setInterval(checkUnread, 5000);
+    };
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', startPolling, { once: true });
+    } else {
+        startPolling();
+    }
+})();
+
+// Topbar badge counts: shows unread notifications and unread messages, "0" when empty.
+(() => {
+    const badges = [
+        { el: document.getElementById('notification-unread-badge'), url: '/Notification/UnreadCount' },
+        { el: document.getElementById('chat-unread-badge'), url: '/Chat/UnreadCount' }
+    ].filter(entry => entry.el);
+
+    if (!badges.length) return;
+
+    const setBadgeCount = (el, count) => {
+        const safeCount = Number.isFinite(count) && count > 0 ? count : 0;
+        el.textContent = safeCount > 99 ? '99+' : String(safeCount);
+        el.dataset.count = String(safeCount);
+        el.classList.toggle('has-unread', safeCount > 0);
+    };
+
+    const refreshBadge = async ({ el, url }) => {
+        try {
+            const response = await fetch(url, {
+                credentials: 'same-origin',
+                headers: { Accept: 'application/json' },
+                cache: 'no-store'
+            });
+            if (!response.ok || !(response.headers.get('content-type') || '').includes('application/json')) return;
+            const payload = await response.json();
+            setBadgeCount(el, Number(readValue(payload, 'count', 'Count')) || 0);
+        } catch {
+            // A temporary network failure must not disrupt the page.
+        }
+    };
+
+    const refreshAll = () => badges.forEach(refreshBadge);
+
+    const startPolling = () => {
+        refreshAll();
+        window.setInterval(refreshAll, 5000);
+    };
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', startPolling, { once: true });
+    } else {
+        startPolling();
+    }
+
+    // Refresh immediately whenever a new toast comes in, instead of waiting for the next poll tick.
+    window.addEventListener('bricksandbooks:fcm-message', refreshAll);
+    window.addEventListener('bricksandbooks:message', refreshAll);
 })();

@@ -31,6 +31,8 @@ public sealed class FirestorePersistenceService
         [typeof(Occupancy)] = "occupancies",
         [typeof(Payment)] = "payments",
         [typeof(PaymentAllocation)] = "paymentAllocations",
+        // Internal workflow records for users who request a password reset from the login page.
+        [typeof(PasswordResetRequest)] = "passwordResetRequests",
         [typeof(Review)] = "reviews",
         [typeof(Tariff)] = "tariffs",
         [typeof(Unit)] = "units",
@@ -131,14 +133,14 @@ public sealed class FirestorePersistenceService
         await _database.Collection("settings").Document("app").SetAsync(new Dictionary<string, object>
         {
             ["appName"] = "Bricks And Books",
-            ["schemaVersion"] = 2,
+            ["schemaVersion"] = 3,
             ["supportedRoles"] = new[] { "student", "staff", "financialOfficer", "admin" },
             ["updatedAt"] = timestamp
         }, SetOptions.MergeAll, cancellationToken);
 
-        await _database.Collection("schemaMetadata").Document("v2").SetAsync(new Dictionary<string, object>
+        await _database.Collection("schemaMetadata").Document("v3").SetAsync(new Dictionary<string, object>
         {
-            ["version"] = 2,
+            ["version"] = 3,
             ["projectId"] = _database.ProjectId,
             ["databaseId"] = _database.DatabaseId,
             ["collections"] = CollectionNames.Values.Where(name => !name.StartsWith('_')).Append("users").Append("settings").Append("schemaMetadata").OrderBy(name => name).ToArray(),

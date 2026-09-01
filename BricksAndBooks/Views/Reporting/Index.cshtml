@@ -2,9 +2,18 @@
     ViewData["Title"] = "Reports";
 }
 
-<h2>@ViewData["Title"]</h2>
-<p>
-    <a asp-action="Revenue" class="btn btn-outline-primary">Revenue Report</a>
-    <a asp-action="Occupancy" class="btn btn-outline-success">Occupancy Report</a>
-    <!-- We can add more reports here -->
-</div>
+<section class="document-page" aria-labelledby="reports-title">
+    <header class="document-header">
+        <img src="~/images/ufs-logo.png" class="document-logo" alt="University of the Free State logo" />
+        <div>
+            <p class="eyebrow mb-1">Bricks &amp; Books / Administration</p>
+            <h1 id="reports-title" class="h2 mb-1">Reports</h1>
+            <p class="text-muted mb-0">Review accommodation operations and payment performance.</p>
+        </div>
+    </header>
+
+    <div class="report-actions d-flex flex-wrap gap-2 mt-4">
+        <a asp-action="Revenue" class="btn btn-primary"><i class="fa-solid fa-chart-line me-2"></i>Revenue report</a>
+        <a asp-action="Occupancy" class="btn btn-outline-primary"><i class="fa-solid fa-building me-2"></i>Occupancy report</a>
+    </div>
+</section>
