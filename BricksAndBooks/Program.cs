@@ -19,7 +19,11 @@ CultureInfo.DefaultThreadCurrentUICulture = southAfricanCulture;
 
 var firebaseProjectId = builder.Configuration["Firebase:ProjectId"]
     ?? throw new InvalidOperationException("Firebase:ProjectId must be configured.");
-var firebaseDatabaseId = builder.Configuration["Firebase:DatabaseId"] ?? "(default)";
+var firebaseDatabaseId = (builder.Configuration["Firebase:DatabaseId"] ?? "(default)").Trim();
+if (string.IsNullOrWhiteSpace(firebaseDatabaseId))
+{
+    firebaseDatabaseId = "(default)";
+}
 
 // Firestore uses Application Default Credentials. Locally, set GOOGLE_APPLICATION_CREDENTIALS
 // to an uncommitted service-account JSON file; do not put credentials in appsettings.json.
