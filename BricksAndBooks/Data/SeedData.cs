@@ -42,7 +42,47 @@ namespace BricksAndBooks.Data
                 context.SaveChanges();
             }
 
+            RemoveConfirmedTestBill(context);
             AlignPendingBillDueDates(context);
+        }
+
+        private static void RemoveConfirmedTestBill(AppDbContext context)
+        {
+            // Remove only the confirmed August 2026 R565 test bill. This is intentionally
+            // scoped by the exact billing period and charge breakdown so normal bills and
+            // tariff configuration are never removed.
+            var testBills = context.Bills
+                .Include(bill => bill.PaymentAllocations)
+                .Include(bill => bill.Payments)
+                .Where(bill => bill.Year == 2026
+                    && bill.Month == 8
+                    && bill.RentAmount == 500m
+                    && bill.WaterAmount == 20m
+                    && bill.ElectricityAmount == 30m
+                    && bill.ParkingAmount == 15m
+                    && bill.AdditionalVehicleAmount == 0m)
+                .ToList();
+
+            if (!testBills.Any())
+            {
+                return;
+            }
+
+            var testBillIds = testBills.Select(bill => bill.Id).ToHashSet();
+            var allocations = context.PaymentAllocations
+                .Where(allocation => testBillIds.Contains(allocation.BillId))
+                .ToList();
+            var paymentIds = allocations.Select(allocation => allocation.PaymentId).ToHashSet();
+            var payments = context.Payments
+                .Include(payment => payment.Allocations)
+                .Where(payment => paymentIds.Contains(payment.Id)
+                    && payment.Allocations.All(allocation => testBillIds.Contains(allocation.BillId)))
+                .ToList();
+
+            context.PaymentAllocations.RemoveRange(allocations);
+            context.Payments.RemoveRange(payments);
+            context.Bills.RemoveRange(testBills);
+            context.SaveChanges();
         }
 
         private static void AlignPendingBillDueDates(AppDbContext context)
