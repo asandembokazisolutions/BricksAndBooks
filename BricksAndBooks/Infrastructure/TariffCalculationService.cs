@@ -22,6 +22,7 @@ namespace BricksAndBooks.Infrastructure
         /// </summary>
         public void CalculateBills(int year, int month)
         {
+            RemoveDuplicateBills();
             var calculatedAt = DateTime.UtcNow;
             var tariffs = GetActiveTariffs(calculatedAt);
             var firstDayOfMonth = new DateTime(year, month, 1);
@@ -35,10 +36,7 @@ namespace BricksAndBooks.Infrastructure
             foreach (var occupancy in activeOccupancies)
             {
                 var existingBill = _repositoryWrapper.Bill.FindAll()
-                    .FirstOrDefault(bill => bill.UnitId == occupancy.UnitId
-                        && bill.UserId == occupancy.UserId
-                        && bill.Year == year
-                        && bill.Month == month);
+                    .FirstOrDefault(bill => bill.UnitId == occupancy.UnitId && bill.Year == year && bill.Month == month);
                 if (existingBill != null)
                 {
                     continue;
@@ -57,6 +55,7 @@ namespace BricksAndBooks.Infrastructure
         /// </summary>
         public Bill? RefreshVehicleChargesForCurrentBill(string userId)
         {
+            RemoveDuplicateBills();
             var calculatedAt = DateTime.UtcNow;
             // Query and update through the same DbContext used by My Bills. This avoids
             // a stale detached entity and guarantees the charge is written to Bills.
@@ -74,10 +73,7 @@ namespace BricksAndBooks.Infrastructure
             var year = calculatedAt.Year;
             var month = calculatedAt.Month;
             var bill = _context.Bills
-                .FirstOrDefault(item => item.UnitId == occupancy.UnitId
-                    && item.UserId == occupancy.UserId
-                    && item.Year == year
-                    && item.Month == month);
+                .FirstOrDefault(item => item.UnitId == occupancy.UnitId && item.Year == year && item.Month == month);
             if (bill?.Status == BillStatus.Cancelled)
             {
                 return null;
@@ -124,7 +120,6 @@ namespace BricksAndBooks.Infrastructure
             var bill = new Bill
             {
                 UnitId = occupancy.UnitId,
-                UserId = occupancy.UserId,
                 Year = year,
                 Month = month,
                 RentAmount = tariffs.Rent,
@@ -147,6 +142,29 @@ namespace BricksAndBooks.Infrastructure
             bill.AdditionalVehicleAmount = vehicleCount > 1
                 ? (vehicleCount - 1) * tariffs.AdditionalVehicle
                 : 0;
+        }
+
+        private void RemoveDuplicateBills()
+        {
+            var duplicateGroups = _context.Bills
+                .Include(bill => bill.PaymentAllocations)
+                .Include(bill => bill.Payments)
+                .AsEnumerable()
+                .GroupBy(bill => new { bill.UnitId, bill.Year, bill.Month })
+                .Where(group => group.Count() > 1)
+                .ToList();
+            foreach (var group in duplicateGroups)
+            {
+                var canonical = group.OrderByDescending(bill => bill.Status == BillStatus.Paid)
+                    .ThenByDescending(bill => bill.UpdatedAt).ThenByDescending(bill => bill.Id).First();
+                foreach (var duplicate in group.Where(bill => bill.Id != canonical.Id))
+                {
+                    foreach (var allocation in duplicate.PaymentAllocations) allocation.BillId = canonical.Id;
+                    foreach (var payment in duplicate.Payments) payment.BillId = canonical.Id;
+                    _context.Bills.Remove(duplicate);
+                }
+            }
+            if (duplicateGroups.Any()) _context.SaveChanges();
         }
 
         private TariffRates GetActiveTariffs(DateTime asOf)

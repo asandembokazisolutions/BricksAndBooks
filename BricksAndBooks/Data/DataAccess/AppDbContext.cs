@@ -109,6 +109,10 @@ namespace BricksAndBooks.Data.DataAccess
                 .HasForeignKey(b => b.UnitId)
                 .OnDelete(DeleteBehavior.Cascade); // Delete bills when unit is deleted
 
+            builder.Entity<Bill>()
+                .HasIndex(b => new { b.UnitId, b.Year, b.Month })
+                .IsUnique();
+
             // Legacy optional Payment-Bill relationship. New payments can cover multiple bills through allocations.
             builder.Entity<Payment>()
                 .HasOne(p => p.Bill)

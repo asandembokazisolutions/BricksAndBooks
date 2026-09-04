@@ -410,7 +410,16 @@ namespace BricksAndBooks.Controllers
                 .Select(occupancy => occupancy.UnitId)
                 .ToHashSet();
 
-            return _context.Bills.Where(bill => unitIds.Contains(bill.UnitId)).ToList();
+            return _context.Bills
+                .Where(bill => unitIds.Contains(bill.UnitId))
+                .AsEnumerable()
+                .GroupBy(bill => new { bill.UnitId, bill.Year, bill.Month })
+                .Select(group => group
+                    .OrderByDescending(bill => bill.Status == BillStatus.Paid)
+                    .ThenByDescending(bill => bill.UpdatedAt)
+                    .ThenByDescending(bill => bill.Id)
+                    .First())
+                .ToList();
         }
 
         private decimal GetActiveAllocatedAmount(int billId, BillChargeType chargeType)
