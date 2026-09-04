@@ -1,13 +1,16 @@
 using BricksAndBooks.Data.DataAccess;
+using BricksAndBooks.Infrastructure;
 using BricksAndBooks.Models;
 using BricksAndBooks.Models.ViewModels;
-using BricksAndBooks.Infrastructure;
+using Humanizer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Drawing;
+using System.Drawing.Printing;
 
 namespace BricksAndBooks.Controllers
 {
@@ -82,14 +85,16 @@ namespace BricksAndBooks.Controllers
             var bnbLogo = ReadImageAsDataUri("bnb-logo.png", "image/png");
             var reference = $"B&B-{occupancy.Id:D6}";
             var fullName = System.Net.WebUtility.HtmlEncode($"{user.FirstName} {user.LastName}");
-            var html = $"""<!doctype html>
+            var html = $"""
+<!doctype html>
 <html><head><meta charset="utf-8"><title>Proof of Accommodation - {System.Net.WebUtility.HtmlEncode(user.FirstName)}</title>
-<style>body{{font-family:Arial,sans-serif;color:#183b56;margin:0;background:#f3f6f8}}.page{{max-width:850px;margin:35px auto;background:#fff;padding:48px;box-shadow:0 5px 24px #183b5620}}.logos{{display:flex;align-items:center;justify-content:space-between;border-bottom:5px solid #f2b134;padding-bottom:22px}}.logos img{{max-height:72px;max-width:230px}}h1{{font-size:30px;margin:42px 0 8px}}.sub{{color:#637789}}.notice{{background:#edf5fa;padding:18px 22px;border-left:5px solid #183b56;margin:28px 0}}.grid{{display:grid;grid-template-columns:1fr 1fr;border:1px solid #d7e1e8;margin-top:25px}}.cell{{padding:17px;border-bottom:1px solid #d7e1e8}}.cell:nth-child(odd){{border-right:1px solid #d7e1e8}}.label{{display:block;font-size:11px;text-transform:uppercase;color:#637789;font-weight:bold;margin-bottom:6px}}.value{{font-size:17px;font-weight:bold}}footer{{margin-top:50px;padding-top:18px;border-top:1px solid #d7e1e8;color:#637789;font-size:12px}}</style></head>
+<style>body{{font - family:Arial,sans-serif;color:#183b56;margin:0;background:#f3f6f8}}.page{{max - width:850px;margin:35px auto;background:#fff;padding:48px;box-shadow:0 5px 24px #183b5620}}.logos{{display:flex;align-items:center;justify-content:space-between;border-bottom:5px solid #f2b134;padding-bottom:22px}}.logos img{{max - height:72px;max-width:230px}}h1{{font - size:30px;margin:42px 0 8px}}.sub{{color:#637789}}.notice{{background:#edf5fa;padding:18px 22px;border-left:5px solid #183b56;margin:28px 0}}.grid{{display:grid;grid-template-columns:1fr 1fr;border:1px solid #d7e1e8;margin-top:25px}}.cell{{padding:17px;border-bottom:1px solid #d7e1e8}}.cell:nth-child(odd){{border - right:1px solid #d7e1e8}}.label{{display:block;font-size:11px;text-transform:uppercase;color:#637789;font-weight:bold;margin-bottom:6px}}.value{{font - size:17px;font-weight:bold}}footer{{margin - top:50px;padding-top:18px;border-top:1px solid #d7e1e8;color:#637789;font-size:12px}}</style></head>
 <body><main class="page"><div class="logos"><img src="{ufsLogo}" alt="University logo"><img src="{bnbLogo}" alt="Bricks and Books logo"></div>
 <h1>Proof of Accommodation</h1><div class="sub">Official residence allocation confirmation · Reference {reference}</div>
 <div class="notice">This document confirms that the student or staff member named below has an active accommodation allocation in the Bricks &amp; Books residence portal.</div>
 <div class="grid"><div class="cell"><span class="label">Full name</span><span class="value">{fullName}</span></div><div class="cell"><span class="label">Email</span><span class="value">{System.Net.WebUtility.HtmlEncode(user.Email ?? "")}</span></div><div class="cell"><span class="label">Residence</span><span class="value">{System.Net.WebUtility.HtmlEncode(accommodation.Name)}</span></div><div class="cell"><span class="label">Address</span><span class="value">{System.Net.WebUtility.HtmlEncode(accommodation.Address)}</span></div><div class="cell"><span class="label">Unit / room</span><span class="value">{System.Net.WebUtility.HtmlEncode(occupancy.Unit.UnitNumber)}</span></div><div class="cell"><span class="label">Bed allocation</span><span class="value">{System.Net.WebUtility.HtmlEncode(occupancy.BedNumber)}</span></div><div class="cell"><span class="label">Accommodation type</span><span class="value">{occupancy.Unit.OccupancyType}</span></div><div class="cell"><span class="label">Allocation start</span><span class="value">{occupancy.StartDate.ToLocalTime():dd MMMM yyyy}</span></div></div>
-<footer>Issued by Bricks &amp; Books Residence Portal on {DateTime.UtcNow.ToLocalTime():dd MMMM yyyy HH:mm}. Verify this document using reference {reference}.</footer></main></body></html>""";
+<footer>Issued by Bricks &amp; Books Residence Portal on {DateTime.UtcNow.ToLocalTime():dd MMMM yyyy HH:mm}. Verify this document using reference {reference}.</footer></main></body></html>
+""";
             return File(System.Text.Encoding.UTF8.GetBytes(html), "text/html", $"Proof-of-Accommodation-{reference}.html");
         }
 
