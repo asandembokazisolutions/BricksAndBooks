@@ -27,6 +27,7 @@ namespace BricksAndBooks.Data.DataAccess
         public DbSet<Occupancy> Occupancies { get; set; }
         public DbSet<AccommodationApplication> AccommodationApplications { get; set; }
         public DbSet<PasswordResetRequest> PasswordResetRequests { get; set; }
+        public DbSet<Announcement> Announcements { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -94,6 +95,9 @@ namespace BricksAndBooks.Data.DataAccess
 
             builder.Entity<PasswordResetRequest>()
                 .HasIndex(r => r.Status);
+
+            builder.Entity<Announcement>()
+                .HasIndex(a => new { a.IsPublished, a.PublishedAt });
 
             builder.Entity<AccommodationApplication>()
                 .HasIndex(a => new { a.AccommodationId, a.Status });
@@ -197,10 +201,9 @@ namespace BricksAndBooks.Data.DataAccess
                 .HasIndex(u => new { u.UnitNumber, u.AccommodationId })
                 .IsUnique();
 
-            // One bill is issued per resident, unit, and month. A unit may contain multiple
-            // occupants, and their payments must never settle one another's bills.
+            // Configure composite unique index for Year + Month + UnitId in Bill table (one bill per unit per month)
             builder.Entity<Bill>()
-                .HasIndex(b => new { b.Year, b.Month, b.UnitId, b.UserId })
+                .HasIndex(b => new { b.Year, b.Month, b.UnitId })
                 .IsUnique();
 
             // Add indexes for foreign keys (non-unique) to improve query performance

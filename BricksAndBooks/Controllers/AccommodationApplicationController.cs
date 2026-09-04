@@ -3,6 +3,8 @@ using BricksAndBooks.Models;
 using BricksAndBooks.Models.ViewModels;
 using BricksAndBooks.Infrastructure;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -16,13 +18,15 @@ namespace BricksAndBooks.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly TariffCalculationService _tariffCalculationService;
         private readonly NotificationService _notificationService;
+        private readonly IWebHostEnvironment _environment;
 
-        public AccommodationApplicationController(AppDbContext context, UserManager<ApplicationUser> userManager, TariffCalculationService tariffCalculationService, NotificationService notificationService)
+        public AccommodationApplicationController(AppDbContext context, UserManager<ApplicationUser> userManager, TariffCalculationService tariffCalculationService, NotificationService notificationService, IWebHostEnvironment environment)
         {
             _context = context;
             _userManager = userManager;
             _tariffCalculationService = tariffCalculationService;
             _notificationService = notificationService;
+            _environment = environment;
         }
 
         public async Task<IActionResult> Index()
@@ -58,7 +62,7 @@ namespace BricksAndBooks.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Student,Staff")]
-        public async Task<IActionResult> Apply(int accommodationId, string? applicantMessage)
+        public async Task<IActionResult> Apply(int accommodationId, string? applicantMessage, List<IFormFile>? documents)
         {
             var userId = _userManager.GetUserId(User);
             if (string.IsNullOrWhiteSpace(userId)) return Challenge();
@@ -88,13 +92,16 @@ namespace BricksAndBooks.Controllers
                 ModelState.AddModelError(nameof(accommodationId), "This residence has no available units or spaces at the moment. Please choose another residence.");
             }
 
+            ValidateApplicationDocuments(documents);
             if (ModelState.IsValid)
             {
+                var documentUrls = await SaveApplicationDocumentsAsync(documents);
                 _context.AccommodationApplications.Add(new AccommodationApplication
                 {
                     UserId = userId,
                     AccommodationId = accommodationId,
                     ApplicantMessage = applicantMessage,
+                    DocumentUrls = documentUrls,
                     Status = AccommodationApplicationStatus.Pending,
                     CreatedAt = DateTime.UtcNow
                 });
@@ -141,10 +148,19 @@ namespace BricksAndBooks.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
+            var occupiedBeds = await _context.Occupancies
+                .Where(o => o.UnitId == unit.Id && (o.EndDate == null || o.EndDate > DateTime.UtcNow))
+                .Select(o => o.BedNumber)
+                .ToListAsync();
+            var bedNumber = Enumerable.Range(1, unit.Capacity)
+                .Select(number => $"Bed {number}")
+                .FirstOrDefault(candidate => !occupiedBeds.Contains(candidate)) ?? $"Bed {activeResidents + 1}";
+
             _context.Occupancies.Add(new Occupancy
             {
                 UserId = application.UserId,
                 UnitId = unit.Id,
+                BedNumber = bedNumber,
                 StartDate = DateTime.UtcNow,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
@@ -163,10 +179,7 @@ namespace BricksAndBooks.Controllers
             var approvalDate = DateTime.UtcNow;
             _tariffCalculationService.CalculateBills(approvalDate.Year, approvalDate.Month);
             var firstBill = await _context.Bills
-                .Where(b => b.UnitId == unit.Id
-                    && b.UserId == application.UserId
-                    && b.Year == approvalDate.Year
-                    && b.Month == approvalDate.Month)
+                .Where(b => b.UnitId == unit.Id && b.Year == approvalDate.Year && b.Month == approvalDate.Month)
                 .OrderByDescending(b => b.CreatedAt)
                 .FirstOrDefaultAsync();
             if (firstBill != null)
@@ -337,6 +350,36 @@ namespace BricksAndBooks.Controllers
         {
             userId ??= _userManager.GetUserId(User);
             return _context.Occupancies.AnyAsync(o => o.UserId == userId && (o.EndDate == null || o.EndDate > DateTime.UtcNow));
+        }
+
+        private void ValidateApplicationDocuments(IEnumerable<IFormFile>? documents)
+        {
+            var files = documents?.Where(file => file.Length > 0).ToList() ?? new List<IFormFile>();
+            var allowed = new[] { ".pdf", ".jpg", ".jpeg", ".png" };
+            if (files.Count > 5) ModelState.AddModelError("documents", "Upload a maximum of five documents.");
+            foreach (var file in files)
+            {
+                if (file.Length > 5 * 1024 * 1024 || !allowed.Contains(Path.GetExtension(file.FileName).ToLowerInvariant()))
+                    ModelState.AddModelError("documents", "Documents must be PDF, JPG, JPEG, or PNG files under 5 MB each.");
+            }
+        }
+
+        private async Task<string?> SaveApplicationDocumentsAsync(IEnumerable<IFormFile>? documents)
+        {
+            var files = documents?.Where(file => file.Length > 0).ToList() ?? new List<IFormFile>();
+            if (!files.Any()) return null;
+            var folder = Path.Combine(_environment.WebRootPath, "uploads", "applications");
+            Directory.CreateDirectory(folder);
+            var urls = new List<string>();
+            foreach (var file in files)
+            {
+                var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+                var name = $"{Guid.NewGuid():N}{extension}";
+                await using var stream = System.IO.File.Create(Path.Combine(folder, name));
+                await file.CopyToAsync(stream);
+                urls.Add($"/uploads/applications/{name}");
+            }
+            return string.Join(",", urls);
         }
     }
 }

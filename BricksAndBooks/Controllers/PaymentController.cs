@@ -5,6 +5,8 @@ using BricksAndBooks.Infrastructure;
 using BricksAndBooks.Models;
 using BricksAndBooks.Models.ViewModels;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -19,19 +21,22 @@ namespace BricksAndBooks.Controllers
         private readonly AuditService _auditService;
         private readonly AppDbContext _context;
         private readonly TariffCalculationService _tariffCalculationService;
+        private readonly IWebHostEnvironment _environment;
 
         public PaymentController(
             NotificationService notificationService,
             UserManager<ApplicationUser> userManager,
             AuditService auditService,
             AppDbContext context,
-            TariffCalculationService tariffCalculationService)
+            TariffCalculationService tariffCalculationService,
+            IWebHostEnvironment environment)
         {
             _notificationService = notificationService;
             _userManager = userManager;
             _auditService = auditService;
             _context = context;
             _tariffCalculationService = tariffCalculationService;
+            _environment = environment;
         }
 
         [Authorize(Roles = "Student,Staff")]
@@ -96,7 +101,7 @@ namespace BricksAndBooks.Controllers
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Student,Staff")]
         [ActionName("Process")]
-        public IActionResult ProcessConfirm(FlexiblePaymentViewModel model)
+        public async Task<IActionResult> ProcessConfirm(FlexiblePaymentViewModel model, IFormFile? proofOfPayment)
         {
             var selectedItems = model.Items
                 .Where(item => item.IsSelected)
@@ -149,6 +154,24 @@ namespace BricksAndBooks.Controllers
                 return View(retryModel);
             }
 
+            string? proofUrl = null;
+            if (proofOfPayment != null && proofOfPayment.Length > 0)
+            {
+                var extension = Path.GetExtension(proofOfPayment.FileName).ToLowerInvariant();
+                var allowed = new[] { ".pdf", ".jpg", ".jpeg", ".png" };
+                if (proofOfPayment.Length > 5 * 1024 * 1024 || !allowed.Contains(extension))
+                {
+                    ModelState.AddModelError("proofOfPayment", "Proof of payment must be a PDF or image file under 5 MB.");
+                    return View(BuildFlexiblePaymentModel());
+                }
+                var folder = Path.Combine(_environment.WebRootPath, "uploads", "payments");
+                Directory.CreateDirectory(folder);
+                var fileName = $"{Guid.NewGuid():N}{extension}";
+                await using var stream = System.IO.File.Create(Path.Combine(folder, fileName));
+                await proofOfPayment.CopyToAsync(stream);
+                proofUrl = $"/uploads/payments/{fileName}";
+            }
+
             var payment = new Payment
             {
                 // Retain a legacy BillId only when the transaction covers exactly one bill.
@@ -160,6 +183,7 @@ namespace BricksAndBooks.Controllers
                 Method = model.Method,
                 Status = PaymentStatus.Pending,
                 PaymentDate = DateTime.UtcNow
+                ,ProofOfPaymentUrl = proofUrl
             };
 
             _context.Payments.Add(payment);
@@ -381,24 +405,12 @@ namespace BricksAndBooks.Controllers
         private IEnumerable<Bill> GetOwnedBills()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrWhiteSpace(userId))
-            {
-                return Enumerable.Empty<Bill>();
-            }
+            var unitIds = _context.Occupancies
+                .Where(occupancy => occupancy.UserId == userId && (occupancy.EndDate == null || occupancy.EndDate >= DateTime.UtcNow))
+                .Select(occupancy => occupancy.UnitId)
+                .ToHashSet();
 
-            var activeOccupancy = _context.Occupancies
-                .Where(occupancy => occupancy.UserId == userId
-                    && (occupancy.EndDate == null || occupancy.EndDate >= DateTime.UtcNow))
-                .OrderByDescending(occupancy => occupancy.StartDate)
-                .FirstOrDefault();
-            if (activeOccupancy == null)
-            {
-                return Enumerable.Empty<Bill>();
-            }
-
-            return _context.Bills
-                .Where(bill => bill.UnitId == activeOccupancy.UnitId && bill.UserId == userId)
-                .ToList();
+            return _context.Bills.Where(bill => unitIds.Contains(bill.UnitId)).ToList();
         }
 
         private decimal GetActiveAllocatedAmount(int billId, BillChargeType chargeType)

@@ -20,7 +20,7 @@
 }
 else
 {
-    <form asp-action="Process" method="post" id="flexible-payment-form">
+    <form asp-action="Process" method="post" enctype="multipart/form-data" id="flexible-payment-form">
         <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
         <div class="row g-4">
             <div class="col-lg-8">
@@ -70,6 +70,9 @@ else
                     <div class="card-body">
                         <label asp-for="Method" class="form-label fw-semibold"></label>
                         <select asp-for="Method" asp-items="Html.GetEnumSelectList<PaymentMethod>()" class="form-select mb-4"></select>
+                        <label for="proofOfPayment" class="form-label fw-semibold">Proof of payment <span class="text-muted fw-normal">(optional)</span></label>
+                        <input id="proofOfPayment" name="proofOfPayment" type="file" class="form-control mb-1" accept=".pdf,.jpg,.jpeg,.png" />
+                        <div class="form-text mb-4">PDF or image, maximum 5 MB.</div>
                         <div class="d-flex justify-content-between text-muted small mb-1"><span>Selected billing items</span><span id="selected-count-copy">0</span></div>
                         <div class="d-flex justify-content-between align-items-end border-top pt-3 mb-4"><span class="fw-semibold">Total to submit</span><strong class="fs-4" id="selected-total">R0.00</strong></div>
                         <button type="submit" class="btn btn-primary w-100" id="submit-payment"><i class="fa-solid fa-lock me-2"></i>Submit payment for verification</button>

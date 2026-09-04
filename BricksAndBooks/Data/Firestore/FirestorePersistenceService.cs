@@ -23,6 +23,7 @@ public sealed class FirestorePersistenceService
     {
         [typeof(Accommodation)] = "accommodations",
         [typeof(AccommodationApplication)] = "accommodationApplications",
+        [typeof(Announcement)] = "announcements",
         [typeof(AuditLog)] = "auditLogs",
         [typeof(Bill)] = "bills",
         [typeof(ChatMessage)] = "chatMessages",

@@ -81,6 +81,7 @@
                 <span class="nav-section-label">Operations</span>
                 @if (User.Identity?.IsAuthenticated == true)
                 {
+                    <a class="side-nav-link @(currentController == "Announcement" ? "active" : "")" asp-controller="Announcement" asp-action="Index"><i class="fa-solid fa-bullhorn"></i><span>Announcements</span></a>
                     <a class="side-nav-link @(currentController == "Maintenance" ? "active" : "")" asp-controller="Maintenance" asp-action="Index"><i class="fa-solid fa-wrench"></i><span>Maintenance</span></a>
                     <a class="side-nav-link @(currentController == "Chat" ? "active" : "")" asp-controller="Chat" asp-action="Index"><i class="fa-regular fa-message"></i><span>Messages</span></a>
                 }
