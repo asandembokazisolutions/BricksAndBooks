@@ -67,7 +67,7 @@ else if (Model.Unit != null && !Model.RecentBills.Any())
                     <h4 class="h5 mb-1">@(Model.Accommodation?.Name ?? "University accommodation")</h4>
                     <p class="text-muted mb-4">@(Model.Accommodation?.Address ?? "Residence address unavailable")</p>
                     <div class="row g-3 mb-4"><div class="col-6"><span class="text-muted small d-block">Assigned unit</span><strong>@Model.Unit.UnitNumber</strong></div><div class="col-6"><span class="text-muted small d-block">Accommodation type</span><strong>@Model.Unit.OccupancyType</strong></div></div>
-                    <form asp-controller="AccommodationApplication" asp-action="RequestTermination" method="post">@Html.AntiForgeryToken()<button type="submit" class="btn btn-sm btn-outline-danger"><i class="fa-solid fa-arrow-right-from-bracket me-1"></i>Request termination</button></form>
+                    <div class="d-flex flex-wrap gap-2"><a asp-controller="AccommodationApplication" asp-action="DownloadProof" class="btn btn-sm btn-primary"><i class="fa-solid fa-file-arrow-down me-1"></i>Download proof</a><form asp-controller="AccommodationApplication" asp-action="RequestTermination" method="post">@Html.AntiForgeryToken()<button type="submit" class="btn btn-sm btn-outline-danger" data-confirm="Submit a request to terminate your accommodation?"><i class="fa-solid fa-arrow-right-from-bracket me-1"></i>Request termination</button></form></div>
                 }
                 else if (Model.LatestApplication != null)
                 {

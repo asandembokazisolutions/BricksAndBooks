@@ -97,6 +97,7 @@ else
                 }
                 @if (!User.IsInRole("Admin") && application.Status == AccommodationApplicationStatus.Approved)
                 {
+                    <a asp-action="DownloadProof" class="btn btn-sm btn-primary mb-2"><i class="fa-solid fa-file-arrow-down me-1"></i>Download proof of accommodation</a>
                     <form asp-action="RequestTermination" method="post" class="border-top pt-3 mt-2 row g-2 align-items-end">
                         @Html.AntiForgeryToken()
                         <div class="col-md-9"><label class="form-label">Need to leave this accommodation?</label><input name="message" class="form-control" placeholder="Optional termination reason" /></div>
