@@ -2,7 +2,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using BricksAndBooks.Data;
+using BricksAndBooks.Data.DataAccess;
 using BricksAndBooks.Models;
 
 namespace BricksAndBooks.Controllers
@@ -10,10 +12,12 @@ namespace BricksAndBooks.Controllers
     public class UnitController : Controller
     {
         private readonly IRepositoryWrapper _repositoryWrapper;
+        private readonly AppDbContext _context;
 
-        public UnitController(IRepositoryWrapper repositoryWrapper)
+        public UnitController(IRepositoryWrapper repositoryWrapper, AppDbContext context)
         {
             _repositoryWrapper = repositoryWrapper;
+            _context = context;
         }
 
         // GET: Unit
@@ -162,15 +166,61 @@ namespace BricksAndBooks.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var unit = _repositoryWrapper.Unit.FindByCondition(u => u.Id == id).FirstOrDefault();
-            if (unit != null)
+            var unit = await _context.Units.FirstOrDefaultAsync(u => u.Id == id);
+            if (unit == null)
             {
-                var accommodationId = unit.AccommodationId;
-                _repositoryWrapper.Unit.Delete(unit);
-                _repositoryWrapper.Save();
-                return RedirectToAction(nameof(Index), new { accommodationId = accommodationId });
+                return RedirectToAction(nameof(Index));
             }
-            return RedirectToAction(nameof(Index));
+
+            var hasActiveResidents = await _context.Occupancies.AnyAsync(occupancy =>
+                occupancy.UnitId == id && (occupancy.EndDate == null || occupancy.EndDate > DateTime.UtcNow));
+            if (hasActiveResidents)
+            {
+                TempData["UnitNavigationMessage"] = "This unit cannot be deleted while it has active residents.";
+                return RedirectToAction(nameof(Index), new { accommodationId = unit.AccommodationId });
+            }
+
+            var hasMaintenanceRequests = await _context.MaintenanceRequests.AnyAsync(request => request.UnitId == id);
+            if (hasMaintenanceRequests)
+            {
+                TempData["UnitNavigationMessage"] = "This unit cannot be deleted because it has maintenance history. Keep it for reporting or archive it instead.";
+                return RedirectToAction(nameof(Index), new { accommodationId = unit.AccommodationId });
+            }
+
+            // Preserve application history while removing the unit relationship.
+            var assignedApplications = await _context.AccommodationApplications
+                .Where(application => application.AssignedUnitId == id)
+                .ToListAsync();
+            foreach (var application in assignedApplications)
+            {
+                application.AssignedUnitId = null;
+            }
+
+            // Remove payment allocations before their bills; the relationship is restrictive.
+            var bills = await _context.Bills.Where(bill => bill.UnitId == id).ToListAsync();
+            var billIds = bills.Select(bill => bill.Id).ToHashSet();
+            var allocations = await _context.PaymentAllocations
+                .Where(allocation => billIds.Contains(allocation.BillId))
+                .ToListAsync();
+            var paymentIds = allocations.Select(allocation => allocation.PaymentId).ToHashSet();
+            var payments = await _context.Payments
+                .Where(payment => paymentIds.Contains(payment.Id))
+                .ToListAsync();
+            foreach (var payment in payments)
+            {
+                if (payment.BillId.HasValue && billIds.Contains(payment.BillId.Value))
+                {
+                    payment.BillId = null;
+                }
+            }
+
+            _context.PaymentAllocations.RemoveRange(allocations);
+            _context.Bills.RemoveRange(bills);
+            _context.Occupancies.RemoveRange(_context.Occupancies.Where(occupancy => occupancy.UnitId == id));
+            _context.Units.Remove(unit);
+            await _context.SaveChangesAsync();
+            TempData["UnitNavigationMessage"] = "The unit and its related billing records were deleted successfully.";
+            return RedirectToAction(nameof(Index), new { accommodationId = unit.AccommodationId });
         }
     }
 }

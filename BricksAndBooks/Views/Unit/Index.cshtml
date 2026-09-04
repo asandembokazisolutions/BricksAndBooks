@@ -8,6 +8,11 @@
 
 <h2>@ViewData["Title"] - @accommodationName</h2>
 
+@if (TempData["UnitNavigationMessage"] is string message)
+{
+    <div class="alert alert-info" role="alert">@message</div>
+}
+
 <p>
     @if (User.IsInRole("Admin"))
     {
