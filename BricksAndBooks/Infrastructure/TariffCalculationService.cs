@@ -2,6 +2,7 @@ using System.Linq;
 using BricksAndBooks.Data;
 using BricksAndBooks.Data.DataAccess;
 using BricksAndBooks.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace BricksAndBooks.Infrastructure
 {
