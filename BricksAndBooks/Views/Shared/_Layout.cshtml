@@ -109,10 +109,16 @@
         </aside>
         <div class="sidebar-scrim" data-sidebar-close></div>
         <main class="main-area">
+            <div class="institutional-bar">
+                <div class="institutional-bar-inner">
+                    <span><i class="fa-solid fa-building-columns me-2"></i>Bricks &amp; Books Residence Portal</span>
+                    <span class="institutional-links"><a asp-controller="Chat" asp-action="Index">Help and support</a><span aria-hidden="true">|</span><span>Emergency: Residence Support</span></span>
+                </div>
+            </div>
             <header class="topbar">
                 <div class="d-flex align-items-center gap-3">
                     <button class="mobile-menu d-lg-none" type="button" data-sidebar-open aria-label="Open navigation"><i class="fa-solid fa-bars"></i></button>
-                    <div class="topbar-brand-mark"><img src="~/images/bnb-logo.png" class="topbar-logo" alt="Bricks & Books logo" /><div><span class="eyebrow">Bricks & Books / @pageTitle</span><h1 class="topbar-title">@pageTitle</h1></div></div>
+                    <div class="topbar-brand-mark"><img src="~/images/bnb-logo.png" class="topbar-logo" alt="Bricks & Books logo" /><div><span class="eyebrow">Student-centred residence services</span><h1 class="topbar-title">@pageTitle</h1></div></div>
                 </div>
                 <div class="topbar-actions">
                     @if (User.Identity?.IsAuthenticated == true && !(currentController == "Home" && currentAction == "Index"))
@@ -143,7 +149,10 @@
                 @RenderBody()
             </div>
             <div id="notification-toast-region" class="notification-toast-region" aria-live="polite" aria-atomic="true"></div>
-            <footer class="app-footer"><span>© 2026 Bricks &amp; Books</span><span>Accommodation, accounts, and residence operations.</span></footer>
+            <footer class="app-footer">
+                <div><strong>Bricks &amp; Books</strong><span>Residence accommodation management</span></div>
+                <div class="footer-links"><a asp-controller="Chat" asp-action="Index">Support</a><a asp-controller="Home" asp-action="Privacy">Privacy</a><span>© 2026</span></div>
+            </footer>
         </main>
     </div>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>

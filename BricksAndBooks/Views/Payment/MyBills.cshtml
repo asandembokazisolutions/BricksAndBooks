@@ -1,89 +1,71 @@
 @model IEnumerable<BricksAndBooks.Models.Bill>
 @{
     ViewData["Title"] = "My bills";
-    var outstandingBills = Model.Count(bill => bill.Status != BricksAndBooks.Models.BillStatus.Paid && bill.Status != BricksAndBooks.Models.BillStatus.Cancelled);
+    var bills = Model.ToList();
+    var outstandingBills = bills.Count(bill => bill.Status != BricksAndBooks.Models.BillStatus.Paid && bill.Status != BricksAndBooks.Models.BillStatus.Cancelled);
+    var outstandingTotal = bills.Where(bill => bill.Status != BricksAndBooks.Models.BillStatus.Paid && bill.Status != BricksAndBooks.Models.BillStatus.Cancelled).Sum(bill => bill.TotalAmount);
 }
 
-<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+<div class="page-intro d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
     <div>
+        <span class="eyebrow">Student finance</span>
         <h2 class="mb-1">My bills</h2>
-        <p class="text-muted mb-0">Review your monthly charges, then choose exactly what you want to pay in the flexible payment workspace.</p>
+        <p class="text-muted mb-0">Review your residence charges and submit only the items you are ready to pay.</p>
     </div>
     @if (outstandingBills > 0)
     {
-        <a asp-action="Process" class="btn btn-primary"><i class="fa-solid fa-wallet me-2"></i>Choose items to pay</a>
+        <a asp-action="Process" class="btn btn-primary"><i class="fa-solid fa-wallet me-2"></i>Pay outstanding charges</a>
     }
 </div>
 
-<div class="alert alert-light border d-flex align-items-start gap-3 mb-4" role="note">
-    <i class="fa-solid fa-calendar-days text-primary mt-1"></i>
-    <div>
-        <strong>Monthly payment deadline.</strong> The payment window runs from the <strong>30th and 31st of the previous month</strong> through the <strong>1st of the billing month</strong>. Any unpaid balance is marked <strong>Overdue</strong> from the 2nd.
-    </div>
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-4"><div class="card finance-summary-card"><span class="stat-label">Outstanding balance</span><strong>@outstandingTotal.ToString("C")</strong><small>Across @outstandingBills open bill(s)</small></div></div>
+    <div class="col-sm-6 col-lg-4"><div class="card finance-summary-card"><span class="stat-label">Payment status</span><strong>@(outstandingBills == 0 ? "Up to date" : "Action required")</strong><small>Payments are verified by finance</small></div></div>
+    <div class="col-sm-6 col-lg-4"><div class="card finance-summary-card"><span class="stat-label">Payment window</span><strong>30th–1st</strong><small>Previous month through billing month</small></div></div>
 </div>
 
-<div class="card shadow-sm">
+<div class="alert alert-light border d-flex align-items-start gap-3 mb-4" role="note">
+    <i class="fa-solid fa-circle-info text-primary mt-1"></i>
+    <div><strong>Important payment information.</strong> Submitting a payment request does not mean the payment has been received. A bill is settled only after the finance team verifies a successful payment.</div>
+</div>
+
+<div class="card">
+    <div class="card-header command-panel-heading"><div><span class="eyebrow">Account statement</span><h3>Residence charges</h3></div><span class="small text-muted">@bills.Count bill(s)</span></div>
     <div class="table-responsive">
         <table class="table align-middle mb-0">
-            <thead><tr><th class="ps-3">Period</th><th>Rent</th><th>Utilities</th><th>Parking & vehicle</th><th>Total</th><th>Payment deadline</th><th>Status</th><th class="text-end pe-3"></th></tr></thead>
+            <thead><tr><th class="ps-3">Period</th><th>Charges</th><th>Total</th><th>Deadline</th><th>Status</th><th class="text-end pe-3">Action</th></tr></thead>
             <tbody>
-            @foreach (var bill in Model)
+            @foreach (var bill in bills)
             {
                 <tr>
-                    <td class="ps-3"><strong>@(new DateTime(bill.Year, bill.Month, 1).ToString("MMMM yyyy"))</strong></td>
-                    <td>@bill.RentAmount.ToString("C")</td>
-                    <td>@((bill.WaterAmount + bill.ElectricityAmount).ToString("C"))</td>
+                    <td class="ps-3"><strong>@(new DateTime(bill.Year, bill.Month, 1).ToString("MMMM yyyy"))</strong><div class="small text-muted">Residence bill</div></td>
+                    <td><div>Rent @bill.RentAmount.ToString("C")</div><div class="small text-muted">Utilities @((bill.WaterAmount + bill.ElectricityAmount).ToString("C")) · Vehicle @((bill.ParkingAmount + bill.AdditionalVehicleAmount).ToString("C"))</div></td>
+                    <td class="fw-bold">@bill.TotalAmount.ToString("C")</td>
+                    <td><div>@bill.DueDate.ToString("dd MMM yyyy")</div><div class="small text-muted">Window @bill.PaymentWindowStart.ToString("dd MMM")–@bill.DueDate.ToString("dd MMM")</div></td>
                     <td>
-                        @if (bill.ParkingAmount + bill.AdditionalVehicleAmount > 0)
-                        {
-                            <div class="fw-semibold">@((bill.ParkingAmount + bill.AdditionalVehicleAmount).ToString("C"))</div>
-                            <div class="small text-success"><i class="fa-solid fa-car me-1"></i>Payable vehicle charge</div>
-                        }
-                        else
-                        {
-                            <span class="text-muted">@((bill.ParkingAmount + bill.AdditionalVehicleAmount).ToString("C"))</span>
-                        }
-                    </td>
-                    <td class="fw-semibold">@bill.TotalAmount.ToString("C")</td>
-                    <td>
-                        <div>@bill.DueDate.ToString("dd MMM yyyy")</div>
-                        <div class="small text-muted">Window: @bill.PaymentWindowStart.ToString("dd MMM") – @bill.DueDate.ToString("dd MMM")</div>
-                    </td>
-                    <td>
-                        @if (bill.Status == BricksAndBooks.Models.BillStatus.Paid)
-                        {
-                            <span class="badge bg-success">Paid</span>
-                        }
-                        else if (bill.IsOverdue)
-                        {
-                            <span class="badge bg-danger"><i class="fa-solid fa-triangle-exclamation me-1"></i>Overdue</span>
-                        }
-                        else
-                        {
-                            <span class="badge bg-warning text-dark">Pending</span>
-                        }
+                        @if (bill.Status == BricksAndBooks.Models.BillStatus.Paid) { <span class="badge bg-success"><i class="fa-solid fa-check me-1"></i>Verified paid</span> }
+                        else if (bill.IsOverdue) { <span class="badge bg-danger"><i class="fa-solid fa-triangle-exclamation me-1"></i>Overdue</span> }
+                        else if (bill.Status == BricksAndBooks.Models.BillStatus.Cancelled) { <span class="badge bg-secondary">Cancelled</span> }
+                        else { <span class="badge bg-warning"><i class="fa-solid fa-clock me-1"></i>Payment required</span> }
                     </td>
                     <td class="text-end pe-3">
-                        @if (bill.Status != BricksAndBooks.Models.BillStatus.Paid && bill.Status != BricksAndBooks.Models.BillStatus.Cancelled)
-                        {
-                            <a asp-action="Process" class="btn btn-sm btn-outline-primary">Choose charges</a>
-                        }
-                        else if (bill.Status == BricksAndBooks.Models.BillStatus.Paid)
-                        {
-                            <span class="text-muted small">Paid in full</span>
-                        }
-                        else
-                        {
-                            <span class="text-muted small">Cancelled</span>
-                        }
+                        @if (bill.Status != BricksAndBooks.Models.BillStatus.Paid && bill.Status != BricksAndBooks.Models.BillStatus.Cancelled) { <a asp-action="Process" class="btn btn-sm btn-primary">Choose charges</a> }
+                        else if (bill.Status == BricksAndBooks.Models.BillStatus.Paid) { <span class="text-muted small">Settled</span> }
+                        else { <span class="text-muted small">No action</span> }
                     </td>
                 </tr>
             }
-            @if (!Model.Any())
-            {
-                <tr><td colspan="8" class="text-center text-muted py-5">No bills are available for your account yet.</td></tr>
-            }
+            @if (!bills.Any()) { <tr><td colspan="6" class="text-center text-muted py-5"><i class="fa-solid fa-file-invoice d-block fs-3 mb-2"></i>No bills are available for your account yet.</td></tr> }
             </tbody>
         </table>
     </div>
 </div>
+
+<style>
+    .finance-summary-card { padding: 20px; border-top: 4px solid var(--navy); height: 100%; }
+    .finance-summary-card:nth-child(2) { border-top-color: #d39a00; }
+    .finance-summary-card:nth-child(3) { border-top-color: #6c879d; }
+    .finance-summary-card strong, .finance-summary-card small { display: block; }
+    .finance-summary-card strong { color: var(--navy); font-size: 1.35rem; margin: 8px 0 4px; }
+    .finance-summary-card small { color: var(--muted); }
+</style>

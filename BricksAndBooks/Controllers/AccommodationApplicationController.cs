@@ -168,6 +168,26 @@ namespace BricksAndBooks.Controllers
                 .FirstOrDefaultAsync();
             if (firstBill != null)
             {
+                // Approval must never make an unpaid bill appear settled. This is important
+                // when an old bill for the same unit was restored from Firestore with a stale
+                // Paid status. Only successful payments are allowed to settle a bill; pending
+                // submissions still require verification by finance.
+                var successfulAllocatedAmount = await _context.PaymentAllocations
+                    .Where(allocation => allocation.BillId == firstBill.Id
+                        && allocation.Payment.Status == PaymentStatus.Successful)
+                    .SumAsync(allocation => (decimal?)allocation.Amount) ?? 0m;
+                var successfulLegacyAmount = await _context.Payments
+                    .Where(payment => payment.BillId == firstBill.Id
+                        && !payment.Allocations.Any()
+                        && payment.Status == PaymentStatus.Successful)
+                    .SumAsync(payment => (decimal?)payment.Amount) ?? 0m;
+                var successfulAmount = successfulAllocatedAmount + successfulLegacyAmount;
+                firstBill.Status = successfulAmount >= firstBill.TotalAmount
+                    && firstBill.TotalAmount > 0m
+                    ? BillStatus.Paid
+                    : BillStatus.Pending;
+                firstBill.UpdatedAt = approvalDate;
+                await _context.SaveChangesAsync();
                 _notificationService.CreateRentDueNotification(application.UserId, firstBill.Id, firstBill.TotalAmount, firstBill.DueDate);
             }
             TempData["ApplicationSuccess"] = "Accommodation approved. The applicant's first rent and utility bill is now ready for payment.";

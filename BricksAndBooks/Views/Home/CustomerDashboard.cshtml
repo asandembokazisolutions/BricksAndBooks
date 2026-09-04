@@ -1,6 +1,6 @@
 @model BricksAndBooks.Models.ViewModels.CustomerDashboardViewModel
 @{
-    ViewData["Title"] = User.IsInRole("Student") ? "Student Dashboard" : "Resident Dashboard";
+    ViewData["Title"] = User.IsInRole("Student") ? "Student portal" : "Resident portal";
     var firstName = Model.User?.FirstName ?? "there";
     var payableBill = Model.RecentBills.FirstOrDefault(bill => bill.Status != BricksAndBooks.Models.BillStatus.Paid && bill.Status != BricksAndBooks.Models.BillStatus.Cancelled);
     var hasOpenBalance = Model.OutstandingBalance > 0;
@@ -90,7 +90,7 @@ else if (Model.Unit != null && !Model.RecentBills.Any())
             <div class="table-responsive"><table class="table mb-0"><thead><tr><th>Billing period</th><th>Deadline</th><th>Total</th><th>Status</th><th></th></tr></thead><tbody>
             @foreach (var bill in Model.RecentBills)
             {
-                <tr><td><strong>@(new DateTime(bill.Year, bill.Month, 1).ToString("MMMM yyyy"))</strong></td><td>@bill.DueDate.ToString("dd MMM yyyy")</td><td class="fw-semibold">@bill.TotalAmount.ToString("C")</td><td><span class="badge @(bill.Status == BricksAndBooks.Models.BillStatus.Paid ? "bg-success" : bill.IsOverdue ? "bg-danger" : "bg-warning")">@(bill.IsOverdue && bill.Status != BricksAndBooks.Models.BillStatus.Paid ? "Overdue" : bill.Status.ToString())</span></td><td class="text-end">@if (bill.Status != BricksAndBooks.Models.BillStatus.Paid && bill.Status != BricksAndBooks.Models.BillStatus.Cancelled) { <a asp-controller="Payment" asp-action="Process" class="btn btn-sm btn-primary">Pay charges</a> }</td></tr>
+                <tr><td><strong>@(new DateTime(bill.Year, bill.Month, 1).ToString("MMMM yyyy"))</strong></td><td>@bill.DueDate.ToString("dd MMM yyyy")</td><td class="fw-semibold">@bill.TotalAmount.ToString("C")</td><td><span class="badge @(bill.Status == BricksAndBooks.Models.BillStatus.Paid ? "bg-success" : bill.IsOverdue ? "bg-danger" : "bg-warning")">@(bill.Status == BricksAndBooks.Models.BillStatus.Paid ? "Verified paid" : bill.IsOverdue ? "Overdue" : "Payment required")</span></td><td class="text-end">@if (bill.Status != BricksAndBooks.Models.BillStatus.Paid && bill.Status != BricksAndBooks.Models.BillStatus.Cancelled) { <a asp-controller="Payment" asp-action="Process" class="btn btn-sm btn-primary">Pay charges</a> }</td></tr>
             }
             @if (!Model.RecentBills.Any()) { <tr><td colspan="5" class="text-center text-muted py-5">No bills have been issued to your account yet.</td></tr> }
             </tbody></table></div>

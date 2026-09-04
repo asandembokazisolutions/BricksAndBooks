@@ -458,9 +458,11 @@ namespace BricksAndBooks.Controllers
                 return;
             }
 
-            var isFullyPaid = Enum.GetValues<BillChargeType>()
+            var payableChargeTypes = Enum.GetValues<BillChargeType>()
                 .Where(chargeType => GetChargeAmount(bill, chargeType) > 0)
-                .All(chargeType => GetSuccessfulAllocatedAmount(bill.Id, chargeType) >= GetChargeAmount(bill, chargeType));
+                .ToList();
+            var isFullyPaid = payableChargeTypes.Any()
+                && payableChargeTypes.All(chargeType => GetSuccessfulAllocatedAmount(bill.Id, chargeType) >= GetChargeAmount(bill, chargeType));
 
             bill.Status = isFullyPaid ? BillStatus.Paid : BillStatus.Pending;
             bill.UpdatedAt = DateTime.UtcNow;
