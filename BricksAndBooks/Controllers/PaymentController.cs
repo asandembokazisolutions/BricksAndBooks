@@ -381,12 +381,24 @@ namespace BricksAndBooks.Controllers
         private IEnumerable<Bill> GetOwnedBills()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var unitIds = _context.Occupancies
-                .Where(occupancy => occupancy.UserId == userId && (occupancy.EndDate == null || occupancy.EndDate >= DateTime.UtcNow))
-                .Select(occupancy => occupancy.UnitId)
-                .ToHashSet();
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return Enumerable.Empty<Bill>();
+            }
 
-            return _context.Bills.Where(bill => unitIds.Contains(bill.UnitId)).ToList();
+            var activeOccupancy = _context.Occupancies
+                .Where(occupancy => occupancy.UserId == userId
+                    && (occupancy.EndDate == null || occupancy.EndDate >= DateTime.UtcNow))
+                .OrderByDescending(occupancy => occupancy.StartDate)
+                .FirstOrDefault();
+            if (activeOccupancy == null)
+            {
+                return Enumerable.Empty<Bill>();
+            }
+
+            return _context.Bills
+                .Where(bill => bill.UnitId == activeOccupancy.UnitId && bill.UserId == userId)
+                .ToList();
         }
 
         private decimal GetActiveAllocatedAmount(int billId, BillChargeType chargeType)

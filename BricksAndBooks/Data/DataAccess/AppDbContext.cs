@@ -197,9 +197,10 @@ namespace BricksAndBooks.Data.DataAccess
                 .HasIndex(u => new { u.UnitNumber, u.AccommodationId })
                 .IsUnique();
 
-            // Configure composite unique index for Year + Month + UnitId in Bill table (one bill per unit per month)
+            // One bill is issued per resident, unit, and month. A unit may contain multiple
+            // occupants, and their payments must never settle one another's bills.
             builder.Entity<Bill>()
-                .HasIndex(b => new { b.Year, b.Month, b.UnitId })
+                .HasIndex(b => new { b.Year, b.Month, b.UnitId, b.UserId })
                 .IsUnique();
 
             // Add indexes for foreign keys (non-unique) to improve query performance

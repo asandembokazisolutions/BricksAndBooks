@@ -35,7 +35,10 @@ namespace BricksAndBooks.Infrastructure
             foreach (var occupancy in activeOccupancies)
             {
                 var existingBill = _repositoryWrapper.Bill.FindAll()
-                    .FirstOrDefault(bill => bill.UnitId == occupancy.UnitId && bill.Year == year && bill.Month == month);
+                    .FirstOrDefault(bill => bill.UnitId == occupancy.UnitId
+                        && bill.UserId == occupancy.UserId
+                        && bill.Year == year
+                        && bill.Month == month);
                 if (existingBill != null)
                 {
                     continue;
@@ -71,7 +74,10 @@ namespace BricksAndBooks.Infrastructure
             var year = calculatedAt.Year;
             var month = calculatedAt.Month;
             var bill = _context.Bills
-                .FirstOrDefault(item => item.UnitId == occupancy.UnitId && item.Year == year && item.Month == month);
+                .FirstOrDefault(item => item.UnitId == occupancy.UnitId
+                    && item.UserId == occupancy.UserId
+                    && item.Year == year
+                    && item.Month == month);
             if (bill?.Status == BillStatus.Cancelled)
             {
                 return null;
@@ -118,6 +124,7 @@ namespace BricksAndBooks.Infrastructure
             var bill = new Bill
             {
                 UnitId = occupancy.UnitId,
+                UserId = occupancy.UserId,
                 Year = year,
                 Month = month,
                 RentAmount = tariffs.Rent,

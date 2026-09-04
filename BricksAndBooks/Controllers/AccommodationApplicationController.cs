@@ -163,7 +163,10 @@ namespace BricksAndBooks.Controllers
             var approvalDate = DateTime.UtcNow;
             _tariffCalculationService.CalculateBills(approvalDate.Year, approvalDate.Month);
             var firstBill = await _context.Bills
-                .Where(b => b.UnitId == unit.Id && b.Year == approvalDate.Year && b.Month == approvalDate.Month)
+                .Where(b => b.UnitId == unit.Id
+                    && b.UserId == application.UserId
+                    && b.Year == approvalDate.Year
+                    && b.Month == approvalDate.Month)
                 .OrderByDescending(b => b.CreatedAt)
                 .FirstOrDefaultAsync();
             if (firstBill != null)

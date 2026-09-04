@@ -72,15 +72,9 @@ namespace BricksAndBooks.Controllers
                 return NotFound();
             }
 
-            // We might want to show the user's bills and payments
-            // Get the units that the user has occupied (current or past) via Occupancy
-            var occupiedUnitIds = _repositoryWrapper.Occupancy.FindAll()
-                .Where(o => o.UserId == id)
-                .Select(o => o.UnitId)
-                .ToList();
-
+            // Bills are resident-owned, even when several residents share one unit.
             var userBills = _repositoryWrapper.Bill.FindAll()
-                .Where(b => occupiedUnitIds.Contains(b.UnitId))
+                .Where(b => b.UserId == id)
                 .ToList();
 
             var model = new CustomerFinancialViewModel

@@ -43,7 +43,7 @@ namespace BricksAndBooks.Controllers
                         .FirstOrDefault();
                     var unit = currentOccupancy == null ? null : _repositoryWrapper.Unit.FindByCondition(u => u.Id == currentOccupancy.UnitId).FirstOrDefault();
                     var accommodation = unit == null ? null : _repositoryWrapper.Accommodation.FindByCondition(a => a.Id == unit.AccommodationId).FirstOrDefault();
-                    var bills = unit == null ? new List<Bill>() : _repositoryWrapper.Bill.FindByCondition(b => b.UnitId == unit.Id)
+                    var bills = unit == null ? new List<Bill>() : _repositoryWrapper.Bill.FindByCondition(b => b.UnitId == unit.Id && b.UserId == user.Id)
                         .OrderByDescending(b => b.Year).ThenByDescending(b => b.Month).ToList();
                     var pendingBills = bills.Where(b => b.Status == BillStatus.Pending).ToList();
                     var billIds = bills.Select(b => b.Id).ToHashSet();
