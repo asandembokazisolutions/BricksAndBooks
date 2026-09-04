@@ -37,7 +37,8 @@ else
         {
             <div class="col-md-6 col-xl-4">
                 <article class="card residence-directory-card h-100">
-                    <div class="residence-card-banner"><i class="fa-solid fa-building-columns"></i></div>
+                    @{ var coverImage = item.ImageUrls?.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault(); }
+                    <div class="residence-card-banner">@if (!string.IsNullOrWhiteSpace(coverImage)) { <img src="@Url.Content(coverImage)" alt="Photo of @item.Name" loading="lazy" /> } else { <i class="fa-solid fa-building-columns"></i> }</div>
                     <div class="card-body d-flex flex-column">
                         <span class="eyebrow">University residence</span>
                         <h3 class="h5 mt-2 mb-2">@item.Name</h3>
@@ -64,5 +65,6 @@ else
 <style>
     .residence-directory-card { overflow: hidden; transition: transform .18s ease, box-shadow .18s ease; }
     .residence-directory-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
-    .residence-card-banner { min-height: 112px; display: grid; place-items: center; color: #fff; font-size: 2.2rem; background: linear-gradient(120deg, var(--navy-deep), var(--navy)); }
+    .residence-card-banner { min-height: 112px; display: grid; place-items: center; color: #fff; font-size: 2.2rem; background: linear-gradient(120deg, var(--navy-deep), var(--navy)); overflow: hidden; }
+    .residence-card-banner img { width: 100%; height: 150px; object-fit: cover; }
 </style>

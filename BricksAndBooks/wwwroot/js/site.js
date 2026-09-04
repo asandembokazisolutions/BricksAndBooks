@@ -183,3 +183,19 @@ const readValue = (object, ...keys) => {
     window.addEventListener('bricksandbooks:fcm-message', refreshAll);
     window.addEventListener('bricksandbooks:message', refreshAll);
 })();
+
+
+// Ask for confirmation on destructive or approval actions marked with data-confirm.
+(() => {
+    document.addEventListener('submit', event => {
+        const submitter = event.submitter;
+        const message = submitter?.dataset.confirm || event.target.querySelector('[data-confirm]')?.dataset.confirm;
+        if (message && !window.confirm(message)) event.preventDefault();
+    });
+    document.querySelectorAll('[data-relative-time]').forEach(element => {
+        const value = Date.parse(element.dataset.relativeTime || '');
+        if (Number.isNaN(value)) return;
+        const minutes = Math.max(0, Math.floor((Date.now() - value) / 60000));
+        element.textContent = minutes < 1 ? 'Updated just now' : minutes < 60 ? `Updated ${minutes} minute(s) ago` : minutes < 1440 ? `Updated ${Math.floor(minutes / 60)} hour(s) ago` : `Updated ${Math.floor(minutes / 1440)} day(s) ago`;
+    });
+})();

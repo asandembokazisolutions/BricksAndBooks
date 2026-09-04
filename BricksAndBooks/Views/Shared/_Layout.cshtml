@@ -104,7 +104,7 @@
                 }
             </nav>
             <div class="sidebar-footer">
-                <a class="help-card" asp-controller="Chat" asp-action="Index"><span class="help-icon"><i class="fa-regular fa-circle-question"></i></span><span><strong>Need help?</strong><small>Talk to support</small></span><i class="fa-solid fa-arrow-up-right-from-square ms-auto"></i></a>
+                <a class="help-card" asp-controller="Support" asp-action="Index"><span class="help-icon"><i class="fa-regular fa-circle-question"></i></span><span><strong>Need help?</strong><small>FAQs and support</small></span><i class="fa-solid fa-arrow-up-right-from-square ms-auto"></i></a>
                 <div class="side-footer-meta">BricksAndBooks <span>v2.4.0</span></div>
             </div>
         </aside>
@@ -113,7 +113,7 @@
             <div class="institutional-bar">
                 <div class="institutional-bar-inner">
                     <span><i class="fa-solid fa-building-columns me-2"></i>Bricks &amp; Books Residence Portal</span>
-                    <span class="institutional-links"><a asp-controller="Chat" asp-action="Index">Help and support</a><span aria-hidden="true">|</span><span>Emergency: Residence Support</span></span>
+                    <span class="institutional-links"><a asp-controller="Support" asp-action="Index">Help and support</a><span aria-hidden="true">|</span><span>Emergency: Residence Support</span></span>
                 </div>
             </div>
             <header class="topbar">
@@ -147,6 +147,10 @@
                 </div>
             </header>
             <div class="page-content">
+                @if (TempData["StatusMessage"] is string globalStatusMessage)
+                {
+                    <div class="alert alert-success global-feedback" role="status"><i class="fa-solid fa-circle-check me-2"></i>@globalStatusMessage</div>
+                }
                 @RenderBody()
             </div>
             <div id="notification-toast-region" class="notification-toast-region" aria-live="polite" aria-atomic="true"></div>
