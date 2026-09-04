@@ -43,7 +43,26 @@ namespace BricksAndBooks.Data
             }
 
             RemoveConfirmedTestBill(context);
+            RemoveConfirmedTestPayment(context);
             AlignPendingBillDueDates(context);
+        }
+
+        private static void RemoveConfirmedTestPayment(AppDbContext context)
+        {
+            // Remove only the payment explicitly identified by the project owner. Bills and
+            // all unrelated payment records remain untouched.
+            const string testReference = "PAY-90F7B64F1E154864908EE7961AFDC3E8";
+            var payment = context.Payments
+                .Include(item => item.Allocations)
+                .SingleOrDefault(item => item.TransactionReferenceId == testReference);
+            if (payment == null)
+            {
+                return;
+            }
+
+            context.PaymentAllocations.RemoveRange(payment.Allocations);
+            context.Payments.Remove(payment);
+            context.SaveChanges();
         }
 
         private static void RemoveConfirmedTestBill(AppDbContext context)
