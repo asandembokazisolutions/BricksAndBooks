@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -24,6 +25,10 @@ namespace BricksAndBooks.Controllers
         public async Task<IActionResult> Index()
         {
             var accommodations = _repositoryWrapper.Accommodation.FindAll().Include(a => a.Units).ToList();
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            ViewBag.HasActiveAccommodation = !string.IsNullOrWhiteSpace(userId)
+                && _repositoryWrapper.Occupancy.FindAll().Any(occupancy =>
+                    occupancy.UserId == userId && (occupancy.EndDate == null || occupancy.EndDate > DateTime.UtcNow));
             return View(accommodations);
         }
 

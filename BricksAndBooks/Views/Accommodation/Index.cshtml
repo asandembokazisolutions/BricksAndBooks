@@ -46,9 +46,13 @@ else
                         <p class="small flex-grow-1">@(string.IsNullOrWhiteSpace(item.Description) ? "Managed accommodation with residence support and student-focused services." : item.Description)</p>
                         <div class="d-flex gap-2 pt-3 border-top">
                             <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-primary btn-sm flex-grow-1">View details</a>
-                            @if (User.IsInRole("Student") || User.IsInRole("Staff"))
+                            @if ((User.IsInRole("Student") || User.IsInRole("Staff")) && !(ViewBag.HasActiveAccommodation ?? false))
                             {
                                 <a asp-controller="AccommodationApplication" asp-action="Apply" class="btn btn-primary btn-sm">Apply</a>
+                            }
+                            else if ((User.IsInRole("Student") || User.IsInRole("Staff")) && (ViewBag.HasActiveAccommodation ?? false))
+                            {
+                                <span class="badge text-bg-success align-self-center">Already allocated</span>
                             }
                             @if (User.IsInRole("Admin"))
                             {

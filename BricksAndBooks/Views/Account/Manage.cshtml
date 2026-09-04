@@ -5,11 +5,6 @@
 }
 
 <h2>Manage Account</h2>
-@if (TempData["StatusMessage"] is string statusMessage)
-{
-    <div class="alert alert-success">@statusMessage</div>
-}
-
 <div class="row">
     <div class="col-md-6">
         <form asp-action="Manage" method="post">

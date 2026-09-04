@@ -105,6 +105,19 @@ else
             };
 
             items.forEach(item => item.addEventListener('change', updateSummary));
+            const paymentForm = document.getElementById('flexible-payment-form');
+            if (paymentForm) {
+                paymentForm.addEventListener('submit', event => {
+                    if (!items.some(item => item.checked)) {
+                        event.preventDefault();
+                        return;
+                    }
+                    if (submit) {
+                        submit.disabled = true;
+                        submit.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i>Submitting payment...';
+                    }
+                });
+            }
             updateSummary();
         })();
     </script>

@@ -11,14 +11,6 @@
     <a asp-action="Create" class="btn btn-primary"><i class="fa-solid fa-car-side me-2"></i>Register vehicle</a>
 </div>
 
-@if (TempData["StatusMessage"] is string statusMessage)
-{
-    <div class="alert alert-success d-flex flex-wrap align-items-center justify-content-between gap-2" role="alert">
-        <span><i class="fa-solid fa-circle-check me-2"></i>@statusMessage</span>
-        <a asp-controller="Payment" asp-action="MyBills" class="btn btn-sm btn-outline-success">View my bills</a>
-    </div>
-}
-
 <div class="card shadow-sm">
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
