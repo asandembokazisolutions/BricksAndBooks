@@ -2866,3 +2866,124 @@ a:hover { color: var(--navy); }
     .accommodation-gallery img, .accommodation-gallery img:first-child { height: 170px; }
     .accommodation-gallery img:first-child { grid-column: span 2; }
 }
+
+
+/* Product-specific refinement: residence operations, not generic SaaS */
+:root {
+    --ink: #15232d;
+    --muted: #657683;
+    --line: #d8e0e5;
+    --canvas: #f2f5f6;
+    --surface: #ffffff;
+    --navy: #073b5c;
+    --navy-deep: #052d46;
+    --teal: #16806f;
+    --teal-soft: #e5f2ef;
+    --gold: #c49318;
+    --radius: 4px;
+    --radius-sm: 3px;
+    --radius-md: 4px;
+    --radius-lg: 5px;
+    --shadow-sm: 0 1px 2px rgba(16, 42, 54, .06);
+    --shadow-md: 0 4px 12px rgba(16, 42, 54, .08);
+    --bnb-shadow-panel: 0 1px 2px rgba(16, 42, 54, .06);
+}
+
+body { background: var(--canvas); color: var(--ink); font-size: .94rem; }
+body, button, input, select, textarea { letter-spacing: normal; }
+h1, h2, h3, h4, h5, h6, .topbar-title, .card-title { font-family: 'DM Sans', sans-serif; letter-spacing: -.018em; }
+h1 { font-size: clamp(1.65rem, 2.2vw, 2.25rem); font-weight: 700; }
+h2 { font-size: clamp(1.35rem, 1.8vw, 1.8rem); font-weight: 700; }
+h3 { font-size: 1.12rem; font-weight: 700; }
+
+/* Remove decorative depth and excessive rounding from recurring surfaces. */
+.card, .dashboard-card, .feature-card, .dashboard-reference-card,
+.dashboard-reference-panel, .landing-feature-card, .workspace-hero,
+.resident-hero, .dashboard-reference-hero, .workspace-switcher,
+.help-card, .input-group, .dropdown-menu { border-radius: var(--radius) !important; box-shadow: var(--shadow-sm) !important; }
+.card { border: 1px solid var(--line); }
+.card:hover, .landing-feature-card:hover { transform: none; box-shadow: var(--shadow-sm) !important; }
+.card-header { background: #fff !important; border-bottom: 1px solid var(--line); border-top: 0; padding: 1rem 1.1rem; }
+.card-body { padding: 1.15rem; }
+
+/* Use one controlled accent instead of gradients and scattered color treatments. */
+.resident-hero, .hero-section, .workspace-hero, .dashboard-reference-hero {
+    background: var(--navy) !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    color: #fff;
+}
+.resident-hero::before, .resident-hero::after, .workspace-hero::before,
+.workspace-hero::after, .dashboard-reference-hero::before, .dashboard-reference-hero::after { display: none !important; }
+.resident-hero-copy, .hero-section .lead, .workspace-hero .text-muted { color: #d9e7ed !important; }
+.resident-summary { border-top: 1px solid rgba(255,255,255,.24); margin-top: 1.35rem; padding-top: 1rem; }
+.resident-summary-item { border-right: 1px solid rgba(255,255,255,.22); }
+.resident-summary-item:last-child { border-right: 0; }
+
+/* Navigation is a working index, not a collection of floating pills. */
+.sidebar { background: var(--navy-deep); padding: 20px 12px 16px; }
+.workspace-switcher { background: rgba(255,255,255,.035); border-color: rgba(255,255,255,.14); }
+.side-nav { gap: 1px; }
+.side-nav-link { border-radius: 3px; min-height: 39px; padding: 0 11px; }
+.side-nav-link.active { background: #f3f6f7; color: var(--navy-deep); box-shadow: inset 3px 0 0 var(--gold); }
+.side-nav-link.active i { color: var(--navy); }
+.nav-section-label { margin-top: 18px; margin-bottom: 5px; }
+.help-card { background: transparent; border: 1px solid rgba(255,255,255,.16); }
+
+.topbar { min-height: 96px; border-bottom: 1px solid var(--line); background: var(--surface); }
+.topbar-brand-mark .eyebrow { color: var(--teal); }
+.topbar-title { color: var(--navy-deep); font-size: 1.55rem; }
+.page-content { max-width: 1500px; padding: 28px 34px 40px; }
+.institutional-bar { background: var(--navy-deep); }
+.institutional-bar-inner { min-height: 34px; font-size: .77rem; }
+
+.btn { border-radius: 3px !important; font-weight: 600; box-shadow: none !important; }
+.btn-primary { background: var(--navy); border-color: var(--navy); }
+.btn-primary:hover, .btn-primary:focus { background: var(--navy-deep); border-color: var(--navy-deep); }
+.btn-warning { background: var(--gold); border-color: var(--gold); color: #fff; }
+.btn-light, .btn-outline-primary { border-color: #b9c9d1; }
+.badge { border-radius: 3px !important; font-weight: 700; letter-spacing: .01em; padding: .38em .58em; }
+.alert { border-radius: 3px !important; box-shadow: none !important; }
+.form-control, .form-select { border-radius: 3px !important; border-color: #bdcbd3; min-height: 42px; }
+.form-control:focus, .form-select:focus { border-color: var(--teal); box-shadow: 0 0 0 2px var(--teal-soft); }
+
+/* Stat panels are references, not four identical floating cards. */
+.command-stat, .dashboard-reference-stat { border-top: 3px solid var(--navy); border-radius: 3px !important; }
+.command-stat.is-warning { border-top-color: var(--gold); }
+.command-stat.is-slate { border-top-color: #8196a3; }
+.command-stat .stat-value { color: var(--navy-deep); font-size: 1.65rem; }
+.stat-label { color: var(--muted); font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.stat-trend { font-size: .78rem; }
+
+/* Tables carry operational density and should read like records. */
+.table { --bs-table-bg: transparent; margin-bottom: 0; }
+.table thead th { background: #edf2f4; color: #536874; font-size: .7rem; letter-spacing: .07em; text-transform: uppercase; border-bottom: 1px solid #c8d4da; }
+.table td, .table th { padding: .78rem .7rem; border-color: var(--line); }
+.table tbody tr:hover { background: #f7fafb; }
+.table-responsive { border: 1px solid var(--line); border-radius: 3px !important; }
+
+/* Replace generic residence gradients with a quiet photographic frame. */
+.residence-card-banner { background: var(--navy) !important; min-height: 132px; }
+.residence-card-banner img { height: 160px; }
+.residence-directory-card { overflow: hidden; }
+.residence-directory-card .card-body { padding: 1rem; }
+
+/* Progress and status communicate workflow; they are not decorative badges. */
+.progress, .application-progress .progress { height: 7px; border-radius: 2px !important; background: #dfe7eb; }
+.progress-bar, .application-progress .progress-bar { border-radius: 0 !important; background: var(--teal); }
+.empty-state { border: 1px dashed #b7c7ce !important; background: #fbfcfc; box-shadow: none !important; }
+.empty-icon { border-radius: 3px !important; background: var(--teal-soft); color: var(--teal); }
+
+/* Remove ornamental chart/card curvature and excessive whitespace on smaller screens. */
+canvas { max-width: 100%; }
+@media (max-width: 991.98px) {
+    .page-content { padding: 22px 20px 32px; }
+    .topbar { min-height: 78px; }
+    .resident-summary { gap: .5rem; }
+    .resident-summary-item { border-right: 0; border-bottom: 1px solid rgba(255,255,255,.2); padding-bottom: .65rem; }
+}
+@media (max-width: 575.98px) {
+    .page-content { padding: 18px 14px 28px; }
+    .card-body { padding: .9rem; }
+    .resident-hero { padding: 1.1rem !important; }
+}
