@@ -51,6 +51,7 @@ namespace BricksAndBooks.Controllers
             }
 
             var bills = GetOwnedBills().OrderByDescending(bill => bill.Year).ThenByDescending(bill => bill.Month).ToList();
+            ViewBag.PayableBillIds = BuildFlexiblePaymentModel().Items.Select(item => item.BillId).ToHashSet();
             return View(bills);
         }
 

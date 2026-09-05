@@ -2,8 +2,9 @@
 @{
     ViewData["Title"] = "My bills";
     var bills = Model.ToList();
-    var outstandingBills = bills.Count(bill => bill.Status != BricksAndBooks.Models.BillStatus.Paid && bill.Status != BricksAndBooks.Models.BillStatus.Cancelled);
-    var outstandingTotal = bills.Where(bill => bill.Status != BricksAndBooks.Models.BillStatus.Paid && bill.Status != BricksAndBooks.Models.BillStatus.Cancelled).Sum(bill => bill.TotalAmount);
+    var payableBillIds = ViewBag.PayableBillIds as HashSet<int> ?? new HashSet<int>();
+    var outstandingBills = bills.Count(bill => payableBillIds.Contains(bill.Id));
+    var outstandingTotal = bills.Where(bill => payableBillIds.Contains(bill.Id)).Sum(bill => bill.TotalAmount);
 }
 
 <div class="page-intro d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
@@ -49,9 +50,9 @@
                         else { <span class="badge bg-warning"><i class="fa-solid fa-clock me-1"></i>Payment required</span> }
                     </td>
                     <td class="text-end pe-3">
-                        @if (bill.Status != BricksAndBooks.Models.BillStatus.Paid && bill.Status != BricksAndBooks.Models.BillStatus.Cancelled) { <a asp-action="Process" class="btn btn-sm btn-primary">Choose charges</a> }
+                        @if (payableBillIds.Contains(bill.Id)) { <a asp-action="Process" class="btn btn-sm btn-primary">Choose charges</a> }
                         else if (bill.Status == BricksAndBooks.Models.BillStatus.Paid) { <span class="text-muted small">Settled</span> }
-                        else { <span class="text-muted small">No action</span> }
+                        else { <span class="text-muted small">Awaiting verification</span> }
                     </td>
                 </tr>
             }

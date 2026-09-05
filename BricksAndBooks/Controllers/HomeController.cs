@@ -17,6 +17,31 @@ namespace BricksAndBooks.Controllers
         private readonly UserManager<ApplicationUser> _userManager = userManager;
         private readonly AppDbContext _context = context;
 
+        private decimal GetPayableAmount(Bill bill)
+        {
+            return Enum.GetValues<BillChargeType>().Sum(type => GetPayableAmount(bill, type));
+        }
+
+        private decimal GetPayableAmount(Bill bill, BillChargeType chargeType)
+        {
+            var amount = chargeType switch
+            {
+                BillChargeType.Rent => bill.RentAmount,
+                BillChargeType.Water => bill.WaterAmount,
+                BillChargeType.Electricity => bill.ElectricityAmount,
+                BillChargeType.Parking => bill.ParkingAmount,
+                BillChargeType.AdditionalVehicle => bill.AdditionalVehicleAmount,
+                _ => 0m
+            };
+            var allocated = _context.PaymentAllocations
+                .Include(allocation => allocation.Payment)
+                .Where(allocation => allocation.BillId == bill.Id
+                    && allocation.ChargeType == chargeType
+                    && (allocation.Payment.Status == PaymentStatus.Pending || allocation.Payment.Status == PaymentStatus.Successful))
+                .Sum(allocation => (decimal?)allocation.Amount) ?? 0m;
+            return Math.Max(0m, amount - allocated);
+        }
+
         public async Task<IActionResult> Index()
         {
             if (User.IsInRole("Admin"))
@@ -48,7 +73,7 @@ namespace BricksAndBooks.Controllers
                         .GroupBy(b => new { b.UnitId, b.Year, b.Month })
                         .Select(group => group.OrderByDescending(b => b.Status == BillStatus.Paid).ThenByDescending(b => b.UpdatedAt).ThenByDescending(b => b.Id).First())
                         .OrderByDescending(b => b.Year).ThenByDescending(b => b.Month).ToList();
-                    var pendingBills = bills.Where(b => b.Status == BillStatus.Pending).ToList();
+                    var pendingBills = bills.Where(b => b.Status == BillStatus.Pending && GetPayableAmount(b) > 0m).ToList();
                     var billIds = bills.Select(b => b.Id).ToHashSet();
                     var payments = _context.Payments
                         .Include(payment => payment.Allocations)
@@ -64,11 +89,11 @@ namespace BricksAndBooks.Controllers
                         LatestApplication = latestApplication,
                         Unit = unit,
                         Accommodation = accommodation,
-                        OutstandingBalance = pendingBills.Sum(b => b.TotalAmount),
-                        RentDue = pendingBills.Sum(b => b.RentAmount),
-                        WaterDue = pendingBills.Sum(b => b.WaterAmount),
-                        ElectricityDue = pendingBills.Sum(b => b.ElectricityAmount),
-                        ParkingDue = pendingBills.Sum(b => b.ParkingAmount + b.AdditionalVehicleAmount),
+                        OutstandingBalance = pendingBills.Sum(GetPayableAmount),
+                        RentDue = pendingBills.Sum(b => GetPayableAmount(b, BillChargeType.Rent)),
+                        WaterDue = pendingBills.Sum(b => GetPayableAmount(b, BillChargeType.Water)),
+                        ElectricityDue = pendingBills.Sum(b => GetPayableAmount(b, BillChargeType.Electricity)),
+                        ParkingDue = pendingBills.Sum(b => GetPayableAmount(b, BillChargeType.Parking) + GetPayableAmount(b, BillChargeType.AdditionalVehicle)),
                         RecentBills = bills.Take(5).ToList(),
                         RecentPayments = payments,
                         UnreadNotifications = _repositoryWrapper.Notification.FindAll().Count(n => n.UserId == user.Id && !n.IsRead),
