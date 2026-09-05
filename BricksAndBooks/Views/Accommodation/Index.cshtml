@@ -57,6 +57,7 @@ else
                             @if (User.IsInRole("Admin"))
                             {
                                 <a asp-controller="Unit" asp-action="Index" asp-route-accommodationId="@item.Id" class="btn btn-light btn-sm" title="Manage units"><i class="fa-solid fa-sliders"></i></a>
+                                <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-outline-danger btn-sm" title="Delete accommodation"><i class="fa-solid fa-trash"></i><span class="visually-hidden">Delete @item.Name</span></a>
                             }
                         </div>
                     </div>
