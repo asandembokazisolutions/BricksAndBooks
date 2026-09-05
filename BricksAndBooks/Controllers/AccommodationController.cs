@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using BricksAndBooks.Data;
+using BricksAndBooks.Data.DataAccess;
 using BricksAndBooks.Models;
 
 namespace BricksAndBooks.Controllers
@@ -13,11 +14,13 @@ namespace BricksAndBooks.Controllers
     {
         private readonly IRepositoryWrapper _repositoryWrapper;
         private readonly IWebHostEnvironment _environment;
+        private readonly AppDbContext _context;
 
-        public AccommodationController(IRepositoryWrapper repositoryWrapper, IWebHostEnvironment environment)
+        public AccommodationController(IRepositoryWrapper repositoryWrapper, IWebHostEnvironment environment, AppDbContext context)
         {
             _repositoryWrapper = repositoryWrapper;
             _environment = environment;
+            _context = context;
         }
 
         // GET: Accommodation
@@ -142,13 +145,60 @@ namespace BricksAndBooks.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var accommodation = _repositoryWrapper.Accommodation.FindByCondition(a => a.Id == id).FirstOrDefault();
-            if (accommodation != null)
+            var accommodation = await _context.Accommodations.FirstOrDefaultAsync(a => a.Id == id);
+            if (accommodation == null)
             {
-                _repositoryWrapper.Accommodation.Delete(accommodation);
-                _repositoryWrapper.Save();
                 return RedirectToAction(nameof(Index));
             }
+
+            var unitIds = await _context.Units
+                .Where(unit => unit.AccommodationId == id)
+                .Select(unit => unit.Id)
+                .ToListAsync();
+
+            // Applications and maintenance records use restrictive relationships. Remove
+            // their dependent records explicitly instead of relying on database cascades.
+            var applications = await _context.AccommodationApplications
+                .Where(application => application.AccommodationId == id)
+                .ToListAsync();
+            var occupancies = await _context.Occupancies
+                .Where(occupancy => unitIds.Contains(occupancy.UnitId))
+                .ToListAsync();
+            var maintenanceRequests = await _context.MaintenanceRequests
+                .Where(request => unitIds.Contains(request.UnitId))
+                .ToListAsync();
+            var bills = await _context.Bills
+                .Where(bill => unitIds.Contains(bill.UnitId))
+                .ToListAsync();
+            var billIds = bills.Select(bill => bill.Id).ToHashSet();
+            var allocations = await _context.PaymentAllocations
+                .Where(allocation => billIds.Contains(allocation.BillId))
+                .ToListAsync();
+
+            // Keep payment history, but remove references to bills being deleted.
+            var paymentIds = allocations.Select(allocation => allocation.PaymentId).ToHashSet();
+            var payments = await _context.Payments
+                .Where(payment => paymentIds.Contains(payment.Id)
+                    || (payment.BillId.HasValue && billIds.Contains(payment.BillId.Value)))
+                .ToListAsync();
+            foreach (var payment in payments)
+            {
+                if (payment.BillId.HasValue && billIds.Contains(payment.BillId.Value))
+                {
+                    payment.BillId = null;
+                }
+            }
+
+            _context.PaymentAllocations.RemoveRange(allocations);
+            _context.Bills.RemoveRange(bills);
+            _context.Occupancies.RemoveRange(occupancies);
+            _context.MaintenanceRequests.RemoveRange(maintenanceRequests);
+            _context.AccommodationApplications.RemoveRange(applications);
+            _context.Units.RemoveRange(_context.Units.Where(unit => unit.AccommodationId == id));
+            _context.Accommodations.Remove(accommodation);
+            await _context.SaveChangesAsync();
+
+            TempData["StatusMessage"] = $"{accommodation.Name} and its related residence records were deleted.";
             return RedirectToAction(nameof(Index));
         }
 
