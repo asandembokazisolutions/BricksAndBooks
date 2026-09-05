@@ -1,0 +1,36 @@
+@model BricksAndBooks.Models.Unit
+
+@{
+    ViewData["Title"] = "Delete unit";
+    var accommodationName = ViewData["AccommodationName"] as string ?? "Accommodation";
+}
+
+<div class="page-intro mb-4">
+    <span class="eyebrow">@accommodationName / Unit management</span>
+    <h2 class="mb-1">Delete unit @Model.UnitNumber</h2>
+    <p class="text-muted mb-0">This action removes the unit and its related inactive records.</p>
+</div>
+
+<div class="card border-danger">
+    <div class="card-body">
+        <div class="alert alert-warning" role="alert">
+            <strong>Before you continue:</strong> deleting this unit removes its bills, payment allocations, inactive occupancy records, application assignments, and maintenance requests. Existing payment history is retained without the deleted bill link.
+        </div>
+
+        <dl class="row mb-4">
+            <dt class="col-sm-3">Unit number</dt>
+            <dd class="col-sm-9">@Model.UnitNumber</dd>
+            <dt class="col-sm-3">Capacity</dt>
+            <dd class="col-sm-9">@Model.Capacity</dd>
+            <dt class="col-sm-3">Type</dt>
+            <dd class="col-sm-9">@Model.OccupancyType</dd>
+        </dl>
+
+        <form asp-action="Delete" method="post" onsubmit="return confirm('Delete this unit and its related inactive records? This cannot be undone.');">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Id" />
+            <button type="submit" class="btn btn-danger">Delete unit</button>
+            <a asp-action="Index" asp-route-accommodationId="@Model.AccommodationId" class="btn btn-light">Cancel</a>
+        </form>
+    </div>
+</div>

@@ -180,13 +180,6 @@ namespace BricksAndBooks.Controllers
                 return RedirectToAction(nameof(Index), new { accommodationId = unit.AccommodationId });
             }
 
-            var hasMaintenanceRequests = await _context.MaintenanceRequests.AnyAsync(request => request.UnitId == id);
-            if (hasMaintenanceRequests)
-            {
-                TempData["UnitNavigationMessage"] = "This unit cannot be deleted because it has maintenance history. Keep it for reporting or archive it instead.";
-                return RedirectToAction(nameof(Index), new { accommodationId = unit.AccommodationId });
-            }
-
             // Preserve application history while removing the unit relationship.
             var assignedApplications = await _context.AccommodationApplications
                 .Where(application => application.AssignedUnitId == id)
@@ -198,6 +191,9 @@ namespace BricksAndBooks.Controllers
 
             // Remove payment allocations before their bills; the relationship is restrictive.
             var bills = await _context.Bills.Where(bill => bill.UnitId == id).ToListAsync();
+            var maintenanceRequests = await _context.MaintenanceRequests
+                .Where(request => request.UnitId == id)
+                .ToListAsync();
             var billIds = bills.Select(bill => bill.Id).ToHashSet();
             var allocations = await _context.PaymentAllocations
                 .Where(allocation => billIds.Contains(allocation.BillId))
@@ -216,6 +212,7 @@ namespace BricksAndBooks.Controllers
 
             _context.PaymentAllocations.RemoveRange(allocations);
             _context.Bills.RemoveRange(bills);
+            _context.MaintenanceRequests.RemoveRange(maintenanceRequests);
             _context.Occupancies.RemoveRange(_context.Occupancies.Where(occupancy => occupancy.UnitId == id));
             _context.Units.Remove(unit);
             await _context.SaveChangesAsync();
