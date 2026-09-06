@@ -14,7 +14,6 @@ namespace BricksAndBooks.Models.ViewModels
         public string? CardholderName { get; set; }
 
         [Display(Name = "Card number")]
-        [CreditCard]
         public string? CardNumber { get; set; }
 
         [Display(Name = "Expiry date")]

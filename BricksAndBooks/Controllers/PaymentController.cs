@@ -123,9 +123,9 @@ namespace BricksAndBooks.Controllers
                 {
                     ModelState.AddModelError(nameof(model.CardholderName), "Enter the name shown on the card.");
                 }
-                if (digits.Length < 13 || digits.Length > 19 || !PassesLuhnCheck(digits))
+                if (digits.Length < 13 || digits.Length > 19)
                 {
-                    ModelState.AddModelError(nameof(model.CardNumber), "Enter a valid card number.");
+                    ModelState.AddModelError(nameof(model.CardNumber), "For this demo, enter any card number containing 13 to 19 digits.");
                 }
                 if (!DateTime.TryParseExact(model.CardExpiry, "MM/yy", null, System.Globalization.DateTimeStyles.None, out var expiry)
                     || expiry < new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1))
@@ -236,24 +236,6 @@ namespace BricksAndBooks.Controllers
 
             TempData["StatusMessage"] = "Your selected payment items have been submitted for verification.";
             return RedirectToAction(nameof(Details), new { id = payment.Id });
-        }
-
-        private static bool PassesLuhnCheck(string digits)
-        {
-            var sum = 0;
-            var doubleDigit = false;
-            for (var i = digits.Length - 1; i >= 0; i--)
-            {
-                var digit = digits[i] - '0';
-                if (doubleDigit)
-                {
-                    digit *= 2;
-                    if (digit > 9) digit -= 9;
-                }
-                sum += digit;
-                doubleDigit = !doubleDigit;
-            }
-            return sum % 10 == 0;
         }
 
         public async Task<IActionResult> Receipt(int id)

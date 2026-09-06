@@ -83,8 +83,9 @@ else
                             </div>
                             <div class="mb-3">
                                 <label asp-for="CardNumber" class="form-label">Card number</label>
-                                <input asp-for="CardNumber" class="form-control" inputmode="numeric" autocomplete="cc-number" maxlength="23" placeholder="1234 5678 9012 3456" />
+                                <input asp-for="CardNumber" class="form-control" inputmode="numeric" autocomplete="cc-number" maxlength="23" placeholder="4111 1111 1111 1111" />
                                 <span asp-validation-for="CardNumber" class="text-danger small"></span>
+                                <div class="form-text">Demo mode: use any 13–19 digit number; spaces and hyphens are accepted.</div>
                             </div>
                             <div class="row g-2">
                                 <div class="col-7">
