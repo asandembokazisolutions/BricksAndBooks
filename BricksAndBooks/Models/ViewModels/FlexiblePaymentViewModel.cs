@@ -9,6 +9,20 @@ namespace BricksAndBooks.Models.ViewModels
         [Display(Name = "Payment method")]
         public PaymentMethod Method { get; set; } = PaymentMethod.BankTransfer;
 
+        // Card values are accepted only for the current request and are never persisted.
+        [Display(Name = "Cardholder name")]
+        public string? CardholderName { get; set; }
+
+        [Display(Name = "Card number")]
+        [CreditCard]
+        public string? CardNumber { get; set; }
+
+        [Display(Name = "Expiry date")]
+        public string? CardExpiry { get; set; }
+
+        [Display(Name = "CVV")]
+        public string? CardCvv { get; set; }
+
         public List<FlexiblePaymentItemViewModel> Items { get; set; } = new List<FlexiblePaymentItemViewModel>();
 
         public decimal SelectedTotal => Items.Where(item => item.IsSelected).Sum(item => item.Amount);

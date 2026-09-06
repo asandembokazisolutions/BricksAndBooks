@@ -115,6 +115,33 @@ namespace BricksAndBooks.Controllers
                 ModelState.AddModelError(string.Empty, "Select at least one rent, utility, parking, or vehicle charge before submitting a payment.");
             }
 
+            string? maskedCardReference = null;
+            if (model.Method == PaymentMethod.CreditCard)
+            {
+                var digits = new string((model.CardNumber ?? string.Empty).Where(char.IsDigit).ToArray());
+                if (string.IsNullOrWhiteSpace(model.CardholderName))
+                {
+                    ModelState.AddModelError(nameof(model.CardholderName), "Enter the name shown on the card.");
+                }
+                if (digits.Length < 13 || digits.Length > 19 || !PassesLuhnCheck(digits))
+                {
+                    ModelState.AddModelError(nameof(model.CardNumber), "Enter a valid card number.");
+                }
+                if (!DateTime.TryParseExact(model.CardExpiry, "MM/yy", null, System.Globalization.DateTimeStyles.None, out var expiry)
+                    || expiry < new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1))
+                {
+                    ModelState.AddModelError(nameof(model.CardExpiry), "Enter a valid expiry date in MM/YY format.");
+                }
+                if (string.IsNullOrWhiteSpace(model.CardCvv) || model.CardCvv.Length < 3 || model.CardCvv.Length > 4 || !model.CardCvv.All(char.IsDigit))
+                {
+                    ModelState.AddModelError(nameof(model.CardCvv), "Enter a 3 or 4 digit CVV.");
+                }
+                if (digits.Length >= 4)
+                {
+                    maskedCardReference = $"Card ending {digits[^4..]}";
+                }
+            }
+
             var ownedBills = GetOwnedBills().ToDictionary(bill => bill.Id);
             var selectedAllocations = new List<PaymentAllocation>();
 
@@ -183,8 +210,9 @@ namespace BricksAndBooks.Controllers
                 Amount = selectedAllocations.Sum(allocation => allocation.Amount),
                 Method = model.Method,
                 Status = PaymentStatus.Pending,
-                PaymentDate = DateTime.UtcNow
-                ,ProofOfPaymentUrl = proofUrl
+                PaymentDate = DateTime.UtcNow,
+                ProofOfPaymentUrl = proofUrl,
+                GatewayResponse = maskedCardReference
             };
 
             _context.Payments.Add(payment);
@@ -208,6 +236,24 @@ namespace BricksAndBooks.Controllers
 
             TempData["StatusMessage"] = "Your selected payment items have been submitted for verification.";
             return RedirectToAction(nameof(Details), new { id = payment.Id });
+        }
+
+        private static bool PassesLuhnCheck(string digits)
+        {
+            var sum = 0;
+            var doubleDigit = false;
+            for (var i = digits.Length - 1; i >= 0; i--)
+            {
+                var digit = digits[i] - '0';
+                if (doubleDigit)
+                {
+                    digit *= 2;
+                    if (digit > 9) digit -= 9;
+                }
+                sum += digit;
+                doubleDigit = !doubleDigit;
+            }
+            return sum % 10 == 0;
         }
 
         public async Task<IActionResult> Receipt(int id)

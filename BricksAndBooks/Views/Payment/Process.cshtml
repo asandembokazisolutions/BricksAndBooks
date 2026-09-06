@@ -70,13 +70,42 @@ else
                     <div class="card-body">
                         <label asp-for="Method" class="form-label fw-semibold"></label>
                         <select asp-for="Method" asp-items="Html.GetEnumSelectList<PaymentMethod>()" class="form-select mb-4"></select>
+                        <div id="card-details" class="border-top pt-3 mb-4" hidden>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <strong>Card details</strong>
+                                <span class="small text-muted"><i class="fa-solid fa-lock me-1"></i>Secure request</span>
+                            </div>
+                            <p class="small text-muted">Card details are used for this payment request only. The full card number and CVV are never saved.</p>
+                            <div class="mb-3">
+                                <label asp-for="CardholderName" class="form-label">Name on card</label>
+                                <input asp-for="CardholderName" class="form-control" autocomplete="cc-name" />
+                                <span asp-validation-for="CardholderName" class="text-danger small"></span>
+                            </div>
+                            <div class="mb-3">
+                                <label asp-for="CardNumber" class="form-label">Card number</label>
+                                <input asp-for="CardNumber" class="form-control" inputmode="numeric" autocomplete="cc-number" maxlength="23" placeholder="1234 5678 9012 3456" />
+                                <span asp-validation-for="CardNumber" class="text-danger small"></span>
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-7">
+                                    <label asp-for="CardExpiry" class="form-label">Expiry (MM/YY)</label>
+                                    <input asp-for="CardExpiry" class="form-control" inputmode="numeric" autocomplete="cc-exp" maxlength="5" placeholder="MM/YY" />
+                                    <span asp-validation-for="CardExpiry" class="text-danger small"></span>
+                                </div>
+                                <div class="col-5">
+                                    <label asp-for="CardCvv" class="form-label">CVV</label>
+                                    <input asp-for="CardCvv" class="form-control" type="password" inputmode="numeric" autocomplete="cc-csc" maxlength="4" />
+                                    <span asp-validation-for="CardCvv" class="text-danger small"></span>
+                                </div>
+                            </div>
+                        </div>
                         <label for="proofOfPayment" class="form-label fw-semibold">Proof of payment <span class="text-muted fw-normal">(optional)</span></label>
                         <input id="proofOfPayment" name="proofOfPayment" type="file" class="form-control mb-1" accept=".pdf,.jpg,.jpeg,.png" />
                         <div class="form-text mb-4">PDF or image, maximum 5 MB.</div>
                         <div class="d-flex justify-content-between text-muted small mb-1"><span>Selected billing items</span><span id="selected-count-copy">0</span></div>
                         <div class="d-flex justify-content-between align-items-end border-top pt-3 mb-4"><span class="fw-semibold">Total to submit</span><strong class="fs-4" id="selected-total">R0.00</strong></div>
                         <button type="submit" class="btn btn-primary w-100" id="submit-payment"><i class="fa-solid fa-lock me-2"></i>Submit payment for verification</button>
-                        <p class="small text-muted mb-0 mt-3">Your payment remains pending until an authorised financial officer verifies it. This screen records a payment request; it does not collect card details.</p>
+                        <p class="small text-muted mb-0 mt-3">Your payment remains pending until an authorised financial officer verifies it.</p>
                     </div>
                 </div>
             </div>
@@ -93,7 +122,15 @@ else
             const count = document.getElementById('selected-count');
             const countCopy = document.getElementById('selected-count-copy');
             const submit = document.getElementById('submit-payment');
+            const method = document.getElementById('Method');
+            const cardDetails = document.getElementById('card-details');
             const currency = new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR' });
+
+            const updateCardDetails = () => {
+                if (!method || !cardDetails) return;
+                // PaymentMethod.CreditCard is the first enum value (0).
+                cardDetails.hidden = method.value !== '0';
+            };
 
             const updateSummary = () => {
                 const selected = items.filter(item => item.checked);
@@ -105,6 +142,7 @@ else
             };
 
             items.forEach(item => item.addEventListener('change', updateSummary));
+            if (method) method.addEventListener('change', updateCardDetails);
             const paymentForm = document.getElementById('flexible-payment-form');
             if (paymentForm) {
                 paymentForm.addEventListener('submit', event => {
@@ -119,6 +157,7 @@ else
                 });
             }
             updateSummary();
+            updateCardDetails();
         })();
     </script>
 }
