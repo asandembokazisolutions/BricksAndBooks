@@ -32,7 +32,7 @@ namespace BricksAndBooks.Controllers
             ViewBag.HasActiveAccommodation = !string.IsNullOrWhiteSpace(userId)
                 && _repositoryWrapper.Occupancy.FindAll().Any(occupancy =>
                     occupancy.UserId == userId && (occupancy.EndDate == null || occupancy.EndDate > DateTime.UtcNow));
-            return View(accommodations);
+            return View("Index", accommodations);
         }
 
         // GET: Accommodation/Details/5

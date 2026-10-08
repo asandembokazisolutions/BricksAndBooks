@@ -1,11 +1,12 @@
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
 using BricksAndBooks.Data;
 using BricksAndBooks.Models;
 using BricksAndBooks.Models.ViewModels;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace BricksAndBooks.Controllers
 {
@@ -66,16 +67,33 @@ namespace BricksAndBooks.Controllers
         // GET: Financial/Customer/Details/5
         public async Task<IActionResult> CustomerDetails(string id)
         {
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                return BadRequest();
+            }
+
             var user = await _userManager.FindByIdAsync(id);
+
             if (user == null)
             {
                 return NotFound();
             }
 
-            // Bills are resident-owned, even when several residents share one unit.
-            var userBills = _repositoryWrapper.Bill.FindAll()
-                .Where(b => b.UserId == id)
-                .ToList();
+            // Bills belong to units, while users are linked to units through Occupancy.
+            var userUnitIds = await _repositoryWrapper.Occupancy
+                .FindAll()
+                .Where(occupancy => occupancy.UserId == id)
+                .Select(occupancy => occupancy.UnitId)
+                .Distinct()
+                .ToListAsync();
+
+            var userBills = await _repositoryWrapper.Bill
+                .FindAll()
+                .Include(bill => bill.Unit)
+                .Where(bill => userUnitIds.Contains(bill.UnitId))
+                .OrderByDescending(bill => bill.Year)
+                .ThenByDescending(bill => bill.Month)
+                .ToListAsync();
 
             var model = new CustomerFinancialViewModel
             {

@@ -19,11 +19,6 @@ namespace BricksAndBooks.Models
         [Required]
         public int UnitId { get; set; }
 
-        // Bills belong to a resident, not only to a physical unit. This prevents a new
-        // occupant of a shared unit from inheriting another occupant's paid bill.
-        [Required]
-        public string UserId { get; set; } = string.Empty;
-
         [ForeignKey("UnitId")]
         public Unit Unit { get; set; }
 

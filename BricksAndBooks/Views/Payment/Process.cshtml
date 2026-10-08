@@ -12,6 +12,11 @@
     <a asp-action="MyBills" class="btn btn-light"><i class="fa-solid fa-file-invoice-dollar me-2"></i>View my bills</a>
 </div>
 
+<div class="alert alert-info border-start border-4 border-primary" role="status">
+    <strong><i class="fa-solid fa-flask me-2"></i>Simulated payment</strong>
+    <span class="ms-1">This is a demonstration environment. No real card transaction or bank transfer will occur.</span>
+</div>
+
 @if (!Model.Items.Any())
 {
     <div class="alert alert-success shadow-sm">

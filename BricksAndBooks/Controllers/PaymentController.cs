@@ -22,6 +22,8 @@ namespace BricksAndBooks.Controllers
         private readonly AppDbContext _context;
         private readonly TariffCalculationService _tariffCalculationService;
         private readonly IWebHostEnvironment _environment;
+        private readonly ILogger<PaymentController> _logger;
+        private static readonly SemaphoreSlim PaymentSubmissionGate = new(1, 1);
 
         public PaymentController(
             NotificationService notificationService,
@@ -29,7 +31,8 @@ namespace BricksAndBooks.Controllers
             AuditService auditService,
             AppDbContext context,
             TariffCalculationService tariffCalculationService,
-            IWebHostEnvironment environment)
+            IWebHostEnvironment environment,
+            ILogger<PaymentController> logger)
         {
             _notificationService = notificationService;
             _userManager = userManager;
@@ -37,6 +40,7 @@ namespace BricksAndBooks.Controllers
             _context = context;
             _tariffCalculationService = tariffCalculationService;
             _environment = environment;
+            _logger = logger;
         }
 
         [Authorize(Roles = "Student,Staff")]
@@ -182,26 +186,48 @@ namespace BricksAndBooks.Controllers
                 return View(retryModel);
             }
 
-            string? proofUrl = null;
-            if (proofOfPayment != null && proofOfPayment.Length > 0)
+            await PaymentSubmissionGate.WaitAsync();
+            try
             {
-                var extension = Path.GetExtension(proofOfPayment.FileName).ToLowerInvariant();
-                var allowed = new[] { ".pdf", ".jpg", ".jpeg", ".png" };
-                if (proofOfPayment.Length > 5 * 1024 * 1024 || !allowed.Contains(extension))
+                // Protect against duplicate POSTs when a user double-clicks or the
+                // browser retries. A pending or successful allocation already reserves
+                // the same bill/charge pair and must not be submitted again.
+                foreach (var allocation in selectedAllocations)
                 {
-                    ModelState.AddModelError("proofOfPayment", "Proof of payment must be a PDF or image file under 5 MB.");
-                    return View(BuildFlexiblePaymentModel());
+                    var alreadySubmitted = await _context.PaymentAllocations
+                        .Include(item => item.Payment)
+                        .AnyAsync(item => item.BillId == allocation.BillId
+                            && item.ChargeType == allocation.ChargeType
+                            && item.Payment != null
+                            && (item.Payment.Status == PaymentStatus.Pending || item.Payment.Status == PaymentStatus.Successful));
+                    if (alreadySubmitted)
+                    {
+                        _logger.LogWarning("Duplicate payment submission blocked for bill {BillId}, charge {ChargeType}, user {UserId}.", allocation.BillId, allocation.ChargeType, User.FindFirstValue(ClaimTypes.NameIdentifier));
+                        TempData["StatusMessage"] = "One or more selected charges already have a payment awaiting verification or have been paid.";
+                        return RedirectToAction(nameof(MyBills));
+                    }
                 }
-                var folder = Path.Combine(_environment.WebRootPath, "uploads", "payments");
-                Directory.CreateDirectory(folder);
-                var fileName = $"{Guid.NewGuid():N}{extension}";
-                await using var stream = System.IO.File.Create(Path.Combine(folder, fileName));
-                await proofOfPayment.CopyToAsync(stream);
-                proofUrl = $"/uploads/payments/{fileName}";
-            }
 
-            var payment = new Payment
-            {
+                string? proofUrl = null;
+                if (proofOfPayment != null && proofOfPayment.Length > 0)
+                {
+                    var extension = Path.GetExtension(proofOfPayment.FileName).ToLowerInvariant();
+                    var allowed = new[] { ".pdf", ".jpg", ".jpeg", ".png" };
+                    if (proofOfPayment.Length > 5 * 1024 * 1024 || !allowed.Contains(extension))
+                    {
+                        ModelState.AddModelError("proofOfPayment", "Proof of payment must be a PDF or image file under 5 MB.");
+                        return View(BuildFlexiblePaymentModel());
+                    }
+                    var folder = Path.Combine(_environment.WebRootPath, "uploads", "payments");
+                    Directory.CreateDirectory(folder);
+                    var fileName = $"{Guid.NewGuid():N}{extension}";
+                    await using var stream = System.IO.File.Create(Path.Combine(folder, fileName));
+                    await proofOfPayment.CopyToAsync(stream);
+                    proofUrl = $"/uploads/payments/{fileName}";
+                }
+
+                var payment = new Payment
+                {
                 // Retain a legacy BillId only when the transaction covers exactly one bill.
                 BillId = selectedAllocations.Select(allocation => allocation.BillId).Distinct().Count() == 1
                     ? selectedAllocations.First().BillId
@@ -213,29 +239,35 @@ namespace BricksAndBooks.Controllers
                 PaymentDate = DateTime.UtcNow,
                 ProofOfPaymentUrl = proofUrl,
                 GatewayResponse = maskedCardReference
-            };
+                };
 
-            _context.Payments.Add(payment);
-            _context.SaveChanges();
+                _context.Payments.Add(payment);
+                _context.SaveChanges();
 
-            foreach (var allocation in selectedAllocations)
-            {
-                allocation.PaymentId = payment.Id;
-                _context.PaymentAllocations.Add(allocation);
+                foreach (var allocation in selectedAllocations)
+                {
+                    allocation.PaymentId = payment.Id;
+                    _context.PaymentAllocations.Add(allocation);
+                }
+                _context.SaveChanges();
+
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+                _notificationService.CreatePaymentPendingNotification(userId, payment.Id, payment.Amount);
+                _auditService.Record(
+                    User,
+                    "Create",
+                    "Payment",
+                    payment.Id,
+                    $"Submitted {payment.Amount:C} across {selectedAllocations.Count} selected billing item(s); status is Pending verification.");
+                _logger.LogInformation("Payment {PaymentId} submitted by user {UserId} for {Amount}.", payment.Id, userId, payment.Amount);
+
+                TempData["StatusMessage"] = "Your selected payment items have been submitted for verification.";
+                return RedirectToAction(nameof(Details), new { id = payment.Id });
             }
-            _context.SaveChanges();
-
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-            _notificationService.CreatePaymentPendingNotification(userId, payment.Id, payment.Amount);
-            _auditService.Record(
-                User,
-                "Create",
-                "Payment",
-                payment.Id,
-                $"Submitted {payment.Amount:C} across {selectedAllocations.Count} selected billing item(s); status is Pending verification.");
-
-            TempData["StatusMessage"] = "Your selected payment items have been submitted for verification.";
-            return RedirectToAction(nameof(Details), new { id = payment.Id });
+            finally
+            {
+                PaymentSubmissionGate.Release();
+            }
         }
 
         public async Task<IActionResult> Receipt(int id)

@@ -19,14 +19,17 @@ namespace BricksAndBooks.Controllers
         private readonly TariffCalculationService _tariffCalculationService;
         private readonly NotificationService _notificationService;
         private readonly IWebHostEnvironment _environment;
+        private readonly ILogger<AccommodationApplicationController> _logger;
+        private static readonly SemaphoreSlim AllocationGate = new(1, 1);
 
-        public AccommodationApplicationController(AppDbContext context, UserManager<ApplicationUser> userManager, TariffCalculationService tariffCalculationService, NotificationService notificationService, IWebHostEnvironment environment)
+        public AccommodationApplicationController(AppDbContext context, UserManager<ApplicationUser> userManager, TariffCalculationService tariffCalculationService, NotificationService notificationService, IWebHostEnvironment environment, ILogger<AccommodationApplicationController> logger)
         {
             _context = context;
             _userManager = userManager;
             _tariffCalculationService = tariffCalculationService;
             _notificationService = notificationService;
             _environment = environment;
+            _logger = logger;
         }
 
         public async Task<IActionResult> Index()
@@ -44,7 +47,11 @@ namespace BricksAndBooks.Controllers
                 query = query.Where(a => a.UserId == userId);
             }
 
-            return View(await query.OrderByDescending(a => a.CreatedAt).ToListAsync());
+            var applications = await query
+                .OrderByDescending(a => a.CreatedAt)
+                .ToListAsync();
+
+            return View("Index", applications);
         }
 
         [Authorize(Roles = "Student,Staff")]
@@ -56,7 +63,8 @@ namespace BricksAndBooks.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            return View(await GetAccommodationAvailabilityAsync());
+            var accommodationOptions = await GetAccommodationAvailabilityAsync();
+            return View("Apply", accommodationOptions);
         }
 
         [Authorize(Roles = "Student,Staff")]
@@ -82,16 +90,14 @@ namespace BricksAndBooks.Controllers
             var bnbLogo = ReadImageAsDataUri("bnb-logo.png", "image/png");
             var reference = $"B&B-{occupancy.Id:D6}";
             var fullName = System.Net.WebUtility.HtmlEncode($"{user.FirstName} {user.LastName}");
-            var html = $$"""
-<!doctype html>
-<html><head><meta charset="utf-8"><title>Proof of Accommodation - {{System.Net.WebUtility.HtmlEncode(user.FirstName)}}</title>
-<style>body{font-family:Arial,sans-serif;color:#183b56;margin:0;background:#f3f6f8}.page{max-width:850px;margin:35px auto;background:#fff;padding:48px;box-shadow:0 5px 24px #183b5620}.logos{display:flex;align-items:center;justify-content:space-between;border-bottom:5px solid #f2b134;padding-bottom:22px}.logos img{max-height:72px;max-width:230px}h1{font-size:30px;margin:42px 0 8px}.sub{color:#637789}.notice{background:#edf5fa;padding:18px 22px;border-left:5px solid #183b56;margin:28px 0}.grid{display:grid;grid-template-columns:1fr 1fr;border:1px solid #d7e1e8;margin-top:25px}.cell{padding:17px;border-bottom:1px solid #d7e1e8}.cell:nth-child(odd){border-right:1px solid #d7e1e8}.label{display:block;font-size:11px;text-transform:uppercase;color:#637789;font-weight:bold;margin-bottom:6px}.value{font-size:17px;font-weight:bold}footer{margin-top:50px;padding-top:18px;border-top:1px solid #d7e1e8;color:#637789;font-size:12px}</style></head>
-<body><main class="page"><div class="logos"><img src="{{ufsLogo}}" alt="University logo"><img src="{{bnbLogo}}" alt="Bricks and Books logo"></div>
-<h1>Proof of Accommodation</h1><div class="sub">Official residence allocation confirmation · Reference {{reference}}</div>
-<div class="notice">This document confirms that the student or staff member named below has an active accommodation allocation in the Bricks &amp; Books residence portal.</div>
-<div class="grid"><div class="cell"><span class="label">Full name</span><span class="value">{{fullName}}</span></div><div class="cell"><span class="label">Email</span><span class="value">{{System.Net.WebUtility.HtmlEncode(user.Email ?? "")}}</span></div><div class="cell"><span class="label">Residence</span><span class="value">{{System.Net.WebUtility.HtmlEncode(accommodation.Name)}}</span></div><div class="cell"><span class="label">Address</span><span class="value">{{System.Net.WebUtility.HtmlEncode(accommodation.Address)}}</span></div><div class="cell"><span class="label">Unit / room</span><span class="value">{{System.Net.WebUtility.HtmlEncode(occupancy.Unit.UnitNumber)}}</span></div><div class="cell"><span class="label">Bed allocation</span><span class="value">{{System.Net.WebUtility.HtmlEncode(occupancy.BedNumber)}}</span></div><div class="cell"><span class="label">Accommodation type</span><span class="value">{{occupancy.Unit.OccupancyType}}</span></div><div class="cell"><span class="label">Allocation start</span><span class="value">{{occupancy.StartDate.ToLocalTime():dd MMMM yyyy}}</span></div></div>
-<footer>Issued by Bricks &amp; Books Residence Portal on {{DateTime.UtcNow.ToLocalTime():dd MMMM yyyy HH:mm}}. Verify this document using reference {{reference}}.</footer></main></body></html>
-""";
+            var html = $@"<!doctype html>
+<html><head><meta charset='utf-8'><title>Proof of Accommodation - {System.Net.WebUtility.HtmlEncode(user.FirstName)}</title>
+<style>body{{font-family:Arial,sans-serif;color:#183b56;margin:0;background:#f3f6f8}}.page{{max-width:850px;margin:35px auto;background:#fff;padding:48px;box-shadow:0 5px 24px #183b5620}}.logos{{display:flex;align-items:center;justify-content:space-between;border-bottom:5px solid #f2b134;padding-bottom:22px}}.logos img{{max-height:72px;max-width:230px}}h1{{font-size:30px;margin:42px 0 8px}}.sub{{color:#637789}}.notice{{background:#edf5fa;padding:18px 22px;border-left:5px solid #183b56;margin:28px 0}}.grid{{display:grid;grid-template-columns:1fr 1fr;border:1px solid #d7e1e8;margin-top:25px}}.cell{{padding:17px;border-bottom:1px solid #d7e1e8}}.cell:nth-child(odd){{border-right:1px solid #d7e1e8}}.label{{display:block;font-size:11px;text-transform:uppercase;color:#637789;font-weight:bold;margin-bottom:6px}}.value{{font-size:17px;font-weight:bold}}footer{{margin-top:50px;padding-top:18px;border-top:1px solid #d7e1e8;color:#637789;font-size:12px}}</style></head>
+<body><main class='page'><div class='logos'><img src='{ufsLogo}' alt='University logo'><img src='{bnbLogo}' alt='Bricks and Books logo'></div>
+<h1>Proof of Accommodation</h1><div class='sub'>Official residence allocation confirmation · Reference {reference}</div>
+<div class='notice'>This document confirms that the student or staff member named below has an active accommodation allocation in the Bricks &amp; Books residence portal.</div>
+<div class='grid'><div class='cell'><span class='label'>Full name</span><span class='value'>{fullName}</span></div><div class='cell'><span class='label'>Email</span><span class='value'>{System.Net.WebUtility.HtmlEncode(user.Email ?? string.Empty)}</span></div><div class='cell'><span class='label'>Residence</span><span class='value'>{System.Net.WebUtility.HtmlEncode(accommodation.Name)}</span></div><div class='cell'><span class='label'>Address</span><span class='value'>{System.Net.WebUtility.HtmlEncode(accommodation.Address)}</span></div><div class='cell'><span class='label'>Unit / room</span><span class='value'>{System.Net.WebUtility.HtmlEncode(occupancy.Unit.UnitNumber)}</span></div><div class='cell'><span class='label'>Bed allocation</span><span class='value'>{System.Net.WebUtility.HtmlEncode(occupancy.BedNumber)}</span></div><div class='cell'><span class='label'>Accommodation type</span><span class='value'>{occupancy.Unit.OccupancyType}</span></div><div class='cell'><span class='label'>Allocation start</span><span class='value'>{occupancy.StartDate.ToLocalTime():dd MMMM yyyy}</span></div></div>
+<footer>Issued by Bricks &amp; Books Residence Portal on {DateTime.UtcNow.ToLocalTime():dd MMMM yyyy HH:mm}. Verify this document using reference {reference}.</footer></main></body></html>";
             return File(System.Text.Encoding.UTF8.GetBytes(html), "text/html", $"Proof-of-Accommodation-{reference}.html");
         }
 
@@ -138,7 +144,7 @@ namespace BricksAndBooks.Controllers
             if (ModelState.IsValid)
             {
                 var documentUrls = await SaveApplicationDocumentsAsync(documents);
-                _context.AccommodationApplications.Add(new AccommodationApplication
+                var application = new AccommodationApplication
                 {
                     UserId = userId,
                     AccommodationId = accommodationId,
@@ -146,13 +152,28 @@ namespace BricksAndBooks.Controllers
                     DocumentUrls = documentUrls,
                     Status = AccommodationApplicationStatus.Pending,
                     CreatedAt = DateTime.UtcNow
-                });
+                };
+                _context.AccommodationApplications.Add(application);
                 await _context.SaveChangesAsync();
+
+                _notificationService.CreateActivityNotification(
+                    userId,
+                    "Accommodation application submitted",
+                    "Your accommodation application was submitted and is awaiting review.",
+                    $"/AccommodationApplication/Index",
+                    application.Id);
+                _notificationService.CreateRoleActivityNotification(
+                    "Admin",
+                    "New accommodation application",
+                    "A new accommodation application is waiting for review.",
+                    $"/AccommodationApplication/Index",
+                    application.Id);
+
                 TempData["ApplicationSuccess"] = "Your accommodation application was submitted for admin review.";
                 return RedirectToAction(nameof(Index));
             }
 
-            return View(accommodationOptions);
+            return View("Apply", accommodationOptions);
         }
 
         [HttpPost]
@@ -183,36 +204,53 @@ namespace BricksAndBooks.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            var activeResidents = await _context.Occupancies.CountAsync(o => o.UnitId == unit.Id && (o.EndDate == null || o.EndDate > DateTime.UtcNow));
-            if (activeResidents >= unit.Capacity || (unit.OccupancyType == UnitOccupancyType.Single && activeResidents > 0))
+            var assignedBedNumber = string.Empty;
+            await AllocationGate.WaitAsync();
+            try
             {
-                TempData["ApplicationError"] = "The selected unit is no longer available.";
-                return RedirectToAction(nameof(Index));
+                // The in-memory EF compatibility cache has no row-lock primitive. This
+                // process-level gate closes the check-then-write race for this app instance.
+                // Firestore deployments with multiple instances should use a transactional
+                // Firestore allocation or a database-level uniqueness constraint.
+                var activeResidents = await _context.Occupancies.CountAsync(o => o.UnitId == unit.Id && (o.EndDate == null || o.EndDate > DateTime.UtcNow));
+                if (activeResidents >= unit.Capacity || (unit.OccupancyType == UnitOccupancyType.Single && activeResidents > 0))
+                {
+                    _logger.LogWarning("Accommodation approval rejected because unit {UnitId} is full. Application {ApplicationId}.", unit.Id, application.Id);
+                    TempData["ApplicationError"] = "The selected unit is no longer available.";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                var occupiedBeds = await _context.Occupancies
+                    .Where(o => o.UnitId == unit.Id && (o.EndDate == null || o.EndDate > DateTime.UtcNow))
+                    .Select(o => o.BedNumber)
+                    .ToListAsync();
+                var bedNumber = Enumerable.Range(1, unit.Capacity)
+                    .Select(number => $"Bed {number}")
+                    .FirstOrDefault(candidate => !occupiedBeds.Contains(candidate)) ?? $"Bed {activeResidents + 1}";
+                assignedBedNumber = bedNumber;
+
+                _context.Occupancies.Add(new Occupancy
+                {
+                    UserId = application.UserId,
+                    UnitId = unit.Id,
+                    BedNumber = bedNumber,
+                    StartDate = DateTime.UtcNow,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                });
+                application.AssignedUnitId = unit.Id;
+                application.Status = AccommodationApplicationStatus.Approved;
+                application.AdminNotes = adminNotes;
+                application.ReviewedAt = DateTime.UtcNow;
+                unit.IsAvailable = activeResidents + 1 < unit.Capacity;
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Accommodation application {ApplicationId} approved for unit {UnitId}, bed {BedNumber}.", application.Id, unit.Id, bedNumber);
             }
-
-            var occupiedBeds = await _context.Occupancies
-                .Where(o => o.UnitId == unit.Id && (o.EndDate == null || o.EndDate > DateTime.UtcNow))
-                .Select(o => o.BedNumber)
-                .ToListAsync();
-            var bedNumber = Enumerable.Range(1, unit.Capacity)
-                .Select(number => $"Bed {number}")
-                .FirstOrDefault(candidate => !occupiedBeds.Contains(candidate)) ?? $"Bed {activeResidents + 1}";
-
-            _context.Occupancies.Add(new Occupancy
+            finally
             {
-                UserId = application.UserId,
-                UnitId = unit.Id,
-                BedNumber = bedNumber,
-                StartDate = DateTime.UtcNow,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            });
-            application.AssignedUnitId = unit.Id;
-            application.Status = AccommodationApplicationStatus.Approved;
-            application.AdminNotes = adminNotes;
-            application.ReviewedAt = DateTime.UtcNow;
-            unit.IsAvailable = activeResidents + 1 < unit.Capacity;
-            await _context.SaveChangesAsync();
+                AllocationGate.Release();
+            }
 
             // Approval creates the active occupancy first. The existing tariff service
             // then issues the first pending bill for this resident, covering rent,
@@ -248,6 +286,12 @@ namespace BricksAndBooks.Controllers
                 await _context.SaveChangesAsync();
                 _notificationService.CreateRentDueNotification(application.UserId, firstBill.Id, firstBill.TotalAmount, firstBill.DueDate);
             }
+            _notificationService.CreateActivityNotification(
+                application.UserId,
+                "Accommodation application approved",
+                $"Your application for {application.Accommodation?.Name ?? "accommodation"} was approved. You were assigned to unit {unit.UnitNumber}, {assignedBedNumber}.",
+                "/AccommodationApplication/Index",
+                application.Id);
             TempData["ApplicationSuccess"] = "Accommodation approved. The applicant's first rent and utility bill is now ready for payment.";
             return RedirectToAction(nameof(Index));
         }
@@ -269,6 +313,15 @@ namespace BricksAndBooks.Controllers
             application.AdminNotes = adminNotes;
             application.ReviewedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
+            _logger.LogInformation("Accommodation application {ApplicationId} declined for user {UserId}.", application.Id, application.UserId);
+            _notificationService.CreateActivityNotification(
+                application.UserId,
+                "Accommodation application declined",
+                string.IsNullOrWhiteSpace(adminNotes)
+                    ? "Your accommodation application was declined. Open the application page for more details."
+                    : $"Your accommodation application was declined. Admin note: {adminNotes}",
+                "/AccommodationApplication/Index",
+                application.Id);
             return RedirectToAction(nameof(Index));
         }
 
@@ -331,6 +384,73 @@ namespace BricksAndBooks.Controllers
             application.AdminNotes = adminNotes;
             application.TerminatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Terminate(int id, string? adminNotes)
+        {
+            if (string.IsNullOrWhiteSpace(adminNotes))
+            {
+                TempData["ApplicationError"] = "A reason is required when terminating an accommodation contract.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var application = await _context.AccommodationApplications
+                .Include(item => item.Accommodation)
+                .Include(item => item.AssignedUnit)
+                .FirstOrDefaultAsync(item => item.Id == id);
+            if (application == null) return NotFound();
+
+            if (application.Status != AccommodationApplicationStatus.Approved)
+            {
+                TempData["ApplicationError"] = "Only an approved active accommodation can be terminated directly by an administrator.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var now = DateTime.UtcNow;
+            var occupancy = await _context.Occupancies
+                .Where(item => item.UserId == application.UserId
+                    && item.UnitId == application.AssignedUnitId
+                    && (item.EndDate == null || item.EndDate > now))
+                .OrderByDescending(item => item.StartDate)
+                .FirstOrDefaultAsync();
+
+            if (occupancy != null)
+            {
+                occupancy.EndDate = now;
+                occupancy.UpdatedAt = now;
+            }
+
+            if (application.AssignedUnit != null)
+            {
+                var remainingResidents = await _context.Occupancies
+                    .CountAsync(item => item.UnitId == application.AssignedUnit.Id
+                        && (item.EndDate == null || item.EndDate > now));
+                application.AssignedUnit.IsAvailable = remainingResidents < application.AssignedUnit.Capacity;
+            }
+
+            application.Status = AccommodationApplicationStatus.Terminated;
+            application.AdminNotes = adminNotes.Trim();
+            application.ReviewedAt = now;
+            application.TerminatedAt = now;
+            await _context.SaveChangesAsync();
+
+            _logger.LogWarning(
+                "Administrator terminated accommodation application {ApplicationId} for user {UserId}. Reason: {Reason}",
+                application.Id,
+                application.UserId,
+                application.AdminNotes);
+            _notificationService.CreateActivityNotification(
+                application.UserId,
+                "Accommodation contract terminated",
+                $"Your accommodation contract for {application.Accommodation?.Name ?? "the residence"} was terminated by an administrator. Reason: {application.AdminNotes}",
+                "/AccommodationApplication/Index",
+                application.Id);
+
+            TempData["ApplicationSuccess"] = "The accommodation contract was terminated and the student was notified.";
             return RedirectToAction(nameof(Index));
         }
 
