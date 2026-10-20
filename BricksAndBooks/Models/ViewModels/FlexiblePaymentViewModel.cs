@@ -9,7 +9,7 @@ namespace BricksAndBooks.Models.ViewModels
         [Display(Name = "Payment method")]
         public PaymentMethod Method { get; set; } = PaymentMethod.BankTransfer;
 
-        // Card values are accepted only for the current request and are never persisted.
+        // New PAN is request-only; saved-card entries retain masked metadata and a salted demo CVC verifier.
         [Display(Name = "Cardholder name")]
         public string? CardholderName { get; set; }
 
@@ -21,10 +21,13 @@ namespace BricksAndBooks.Models.ViewModels
 
         [Display(Name = "CVV")]
         public string? CardCvv { get; set; }
+        public int? SavedCardId { get; set; }
+        public bool SaveCardForFuture { get; set; }
+        public List<BricksAndBooks.Models.SavedPaymentCard> SavedCards { get; set; } = new();
 
         public List<FlexiblePaymentItemViewModel> Items { get; set; } = new List<FlexiblePaymentItemViewModel>();
 
-        public decimal SelectedTotal => Items.Where(item => item.IsSelected).Sum(item => item.Amount);
+        public decimal SelectedTotal => Items.Where(item => item.IsSelected).Sum(item => item.RatePerUnit > 0m ? item.RatePerUnit * item.Quantity : item.OutstandingAmount);
     }
 
     public class FlexiblePaymentItemViewModel
@@ -35,6 +38,9 @@ namespace BricksAndBooks.Models.ViewModels
         public string BillingPeriod { get; set; } = string.Empty;
         public DateTime DueDate { get; set; }
         public decimal Amount { get; set; }
+        public decimal RatePerUnit { get; set; }
+        public string UnitName { get; set; } = string.Empty;
+        public decimal Quantity { get; set; } = 1m;
         public decimal AlreadyAllocated { get; set; }
         public bool IsSelected { get; set; }
 

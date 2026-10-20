@@ -57,12 +57,6 @@ namespace BricksAndBooks.Controllers
         [Authorize(Roles = "Student,Staff")]
         public async Task<IActionResult> Apply()
         {
-            if (await HasActiveOccupancyAsync())
-            {
-                TempData["ApplicationError"] = "You already have accommodation. Submit a termination request before applying again.";
-                return RedirectToAction(nameof(Index));
-            }
-
             var accommodationOptions = await GetAccommodationAvailabilityAsync();
             return View("Apply", accommodationOptions);
         }
@@ -114,20 +108,6 @@ namespace BricksAndBooks.Controllers
         {
             var userId = _userManager.GetUserId(User);
             if (string.IsNullOrWhiteSpace(userId)) return Challenge();
-
-            if (await HasActiveOccupancyAsync(userId))
-            {
-                TempData["ApplicationError"] = "You already have accommodation. Submit a termination request before applying again.";
-                return RedirectToAction(nameof(Index));
-            }
-
-            var hasPendingApplication = await _context.AccommodationApplications.AnyAsync(a =>
-                a.UserId == userId && a.Status == AccommodationApplicationStatus.Pending);
-            if (hasPendingApplication)
-            {
-                TempData["ApplicationError"] = "You already have a pending accommodation application.";
-                return RedirectToAction(nameof(Index));
-            }
 
             var accommodationOptions = await GetAccommodationAvailabilityAsync();
             var selectedAccommodation = accommodationOptions.FirstOrDefault(item => item.AccommodationId == accommodationId);
@@ -284,7 +264,8 @@ namespace BricksAndBooks.Controllers
                     : BillStatus.Pending;
                 firstBill.UpdatedAt = approvalDate;
                 await _context.SaveChangesAsync();
-                _notificationService.CreateRentDueNotification(application.UserId, firstBill.Id, firstBill.TotalAmount, firstBill.DueDate);
+                // The approved resident can review and pay this bill from My Bills; approval
+                // itself does not launch or force a payment step.
             }
             _notificationService.CreateActivityNotification(
                 application.UserId,
@@ -292,7 +273,7 @@ namespace BricksAndBooks.Controllers
                 $"Your application for {application.Accommodation?.Name ?? "accommodation"} was approved. You were assigned to unit {unit.UnitNumber}, {assignedBedNumber}.",
                 "/AccommodationApplication/Index",
                 application.Id);
-            TempData["ApplicationSuccess"] = "Accommodation approved. The applicant's first rent and utility bill is now ready for payment.";
+            TempData["ApplicationSuccess"] = "Accommodation approved. Your allocation is confirmed; billing is available separately under My Bills when you are ready.";
             return RedirectToAction(nameof(Index));
         }
 

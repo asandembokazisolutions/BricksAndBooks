@@ -7,7 +7,7 @@
 <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
     <div>
         <h2 class="mb-1">Choose what you are paying</h2>
-        <p class="text-muted mb-0">Select any combination of rent, utilities, parking, or vehicle charges. You can pay two, three, or any number of available months in one transaction. Bills are due by the 1st after the 30th–31st payment window.</p>
+        <p class="text-muted mb-0">Select any combination of rent, utilities, parking, or vehicle charges. You can pay two, three, or any number of available months in one transaction whenever you are ready.</p>
     </div>
     <a asp-action="MyBills" class="btn btn-light"><i class="fa-solid fa-file-invoice-dollar me-2"></i>View my bills</a>
 </div>
@@ -41,27 +41,29 @@ else
                             @for (var i = 0; i < Model.Items.Count; i++)
                             {
                                 var item = Model.Items[i];
-                                var isOverdue = DateTime.UtcNow.Date > item.DueDate.Date;
                                 <tr>
                                     <td class="ps-3">
-                                        <input asp-for="Items[i].IsSelected" class="form-check-input payment-item" data-amount="@item.OutstandingAmount.ToString(System.Globalization.CultureInfo.InvariantCulture)" />
+                                        <input asp-for="Items[i].IsSelected" class="form-check-input payment-item" data-amount="@item.OutstandingAmount.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-rate="@item.RatePerUnit.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-metered="@(item.RatePerUnit > 0)" />
                                         <input asp-for="Items[i].BillId" type="hidden" />
                                         <input asp-for="Items[i].ChargeType" type="hidden" />
+                                        <input asp-for="Items[i].Quantity" type="hidden" class="quantity-value" value="@item.Quantity" />
                                     </td>
                                     <td>
                                         <strong>@item.BillingPeriod</strong>
-                                        @if (isOverdue)
-                                        {
-                                            <div class="small text-danger fw-semibold"><i class="fa-solid fa-triangle-exclamation me-1"></i>Overdue since @item.DueDate.AddDays(1).ToString("dd MMM")</div>
-                                        }
                                         @if (item.AlreadyAllocated > 0)
                                         {
                                             <div class="small text-warning">@item.AlreadyAllocated.ToString("C") awaiting verification</div>
                                         }
                                     </td>
-                                    <td><span class="badge text-bg-light border text-dark">@item.ChargeLabel</span></td>
-                                    <td><div>@item.DueDate.ToString("dd MMM yyyy")</div><div class="small text-muted">Due by 1st</div></td>
-                                    <td class="text-end pe-3 fw-semibold">@item.OutstandingAmount.ToString("C")</td>
+                                    <td><span class="badge text-bg-light border text-dark">@item.ChargeLabel</span>
+                                        @if (item.RatePerUnit > 0)
+                                        {
+                                            <div class="mt-2"><label class="small text-muted" for="quantity-@i">Quantity (@item.UnitName) · @item.RatePerUnit.ToString("C")/unit</label>
+                                            <input id="quantity-@i" type="number" class="form-control form-control-sm utility-quantity" min="0.01" max="10000" step="0.01" value="@item.Quantity.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-index="@i" /></div>
+                                        }
+                                    </td>
+                                    <td><div>@item.DueDate.ToString("dd MMM yyyy")</div><div class="small text-muted">Available whenever you are ready</div></td>
+                                    <td class="text-end pe-3 fw-semibold"><span class="line-total" data-index="@i">@(item.RatePerUnit > 0 ? (item.RatePerUnit * item.Quantity).ToString("C") : item.OutstandingAmount.ToString("C"))</span></td>
                                 </tr>
                             }
                             </tbody>
@@ -75,35 +77,22 @@ else
                     <div class="card-body">
                         <label asp-for="Method" class="form-label fw-semibold"></label>
                         <select asp-for="Method" asp-items="Html.GetEnumSelectList<PaymentMethod>()" class="form-select mb-4"></select>
+                        @if (Model.SavedCards.Any())
+                        {
+                            <label asp-for="SavedCardId" class="form-label">Use registered demo card</label>
+                            <select asp-for="SavedCardId" class="form-select mb-3"><option value="">Enter a new card</option>@foreach (var card in Model.SavedCards) { <option value="@card.Id">@card.CardholderName · •••• @card.LastFour · expires @card.Expiry</option> }</select>
+                        }
+                        <div class="small text-muted mb-3"><a asp-controller="Payment" asp-action="SavedCards">Manage registered cards</a></div>
                         <div id="card-details" class="border-top pt-3 mb-4" hidden>
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <strong>Card details</strong>
-                                <span class="small text-muted"><i class="fa-solid fa-lock me-1"></i>Secure request</span>
+                            <div class="d-flex justify-content-between align-items-center mb-3"><strong>Card details</strong><span class="small text-muted"><i class="fa-solid fa-lock me-1"></i>Demo only</span></div>
+                            <p class="small text-muted">A registered demo card requires its matching CVC on each use. The demo stores no full card number and is not a payment processor.</p>
+                            <div class="new-card-fields">
+                                <div class="mb-3"><label asp-for="CardholderName" class="form-label">Name on card</label><input asp-for="CardholderName" class="form-control" autocomplete="cc-name" /><span asp-validation-for="CardholderName" class="text-danger small"></span></div>
+                                <div class="mb-3"><label asp-for="CardNumber" class="form-label">Card number</label><input asp-for="CardNumber" class="form-control" inputmode="numeric" autocomplete="cc-number" maxlength="23" placeholder="4111 1111 1111 1111" /><span asp-validation-for="CardNumber" class="text-danger small"></span><div class="form-text">Demo mode: any 13–19 digit number.</div></div>
+                                <div class="mb-3"><label asp-for="CardExpiry" class="form-label">Expiry (MM/YY)</label><input asp-for="CardExpiry" class="form-control" inputmode="numeric" autocomplete="cc-exp" maxlength="5" placeholder="MM/YY" /><span asp-validation-for="CardExpiry" class="text-danger small"></span></div>
+                                <div class="form-check mb-3"><input asp-for="SaveCardForFuture" class="form-check-input" /><label asp-for="SaveCardForFuture" class="form-check-label">Register this demo card for future payments</label></div>
                             </div>
-                            <p class="small text-muted">Card details are used for this payment request only. The full card number and CVV are never saved.</p>
-                            <div class="mb-3">
-                                <label asp-for="CardholderName" class="form-label">Name on card</label>
-                                <input asp-for="CardholderName" class="form-control" autocomplete="cc-name" />
-                                <span asp-validation-for="CardholderName" class="text-danger small"></span>
-                            </div>
-                            <div class="mb-3">
-                                <label asp-for="CardNumber" class="form-label">Card number</label>
-                                <input asp-for="CardNumber" class="form-control" inputmode="numeric" autocomplete="cc-number" maxlength="23" placeholder="4111 1111 1111 1111" />
-                                <span asp-validation-for="CardNumber" class="text-danger small"></span>
-                                <div class="form-text">Demo mode: use any 13–19 digit number; spaces and hyphens are accepted.</div>
-                            </div>
-                            <div class="row g-2">
-                                <div class="col-7">
-                                    <label asp-for="CardExpiry" class="form-label">Expiry (MM/YY)</label>
-                                    <input asp-for="CardExpiry" class="form-control" inputmode="numeric" autocomplete="cc-exp" maxlength="5" placeholder="MM/YY" />
-                                    <span asp-validation-for="CardExpiry" class="text-danger small"></span>
-                                </div>
-                                <div class="col-5">
-                                    <label asp-for="CardCvv" class="form-label">CVV</label>
-                                    <input asp-for="CardCvv" class="form-control" type="password" inputmode="numeric" autocomplete="cc-csc" maxlength="4" />
-                                    <span asp-validation-for="CardCvv" class="text-danger small"></span>
-                                </div>
-                            </div>
+                            <div><label asp-for="CardCvv" class="form-label">CVC (required every time)</label><input asp-for="CardCvv" class="form-control" type="password" inputmode="numeric" autocomplete="cc-csc" maxlength="4" /><span asp-validation-for="CardCvv" class="text-danger small"></span></div>
                         </div>
                         <label for="proofOfPayment" class="form-label fw-semibold">Proof of payment <span class="text-muted fw-normal">(optional)</span></label>
                         <input id="proofOfPayment" name="proofOfPayment" type="file" class="form-control mb-1" accept=".pdf,.jpg,.jpeg,.png" />
@@ -130,6 +119,9 @@ else
             const submit = document.getElementById('submit-payment');
             const method = document.getElementById('Method');
             const cardDetails = document.getElementById('card-details');
+            const savedCardSelect = document.getElementById('SavedCardId');
+            const newCardFields = document.querySelector('.new-card-fields');
+            const quantityInputs = Array.from(document.querySelectorAll('.utility-quantity'));
             const currency = new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR' });
 
             const updateCardDetails = () => {
@@ -140,7 +132,13 @@ else
 
             const updateSummary = () => {
                 const selected = items.filter(item => item.checked);
-                const selectedTotal = selected.reduce((sum, item) => sum + Number(item.dataset.amount || 0), 0);
+                const selectedTotal = selected.reduce((sum, item) => {
+                    if (item.dataset.metered === 'True' || item.dataset.metered === 'true') {
+                        const qty = Number(document.querySelector(`.utility-quantity[data-index="${items.indexOf(item)}"]`)?.value || 0);
+                        return sum + Number(item.dataset.rate || 0) * qty;
+                    }
+                    return sum + Number(item.dataset.amount || 0);
+                }, 0);
                 if (total) total.textContent = currency.format(selectedTotal);
                 if (count) count.textContent = `${selected.length} selected`;
                 if (countCopy) countCopy.textContent = selected.length;
@@ -148,6 +146,20 @@ else
             };
 
             items.forEach(item => item.addEventListener('change', updateSummary));
+            quantityInputs.forEach(input => input.addEventListener('input', () => {
+                const index = Number(input.dataset.index);
+                const hidden = document.querySelectorAll('.quantity-value')[index];
+                if (hidden) hidden.value = input.value;
+                const checkbox = items[index];
+                const line = document.querySelector(`.line-total[data-index="${index}"]`);
+                if (checkbox && line) line.textContent = currency.format(Number(checkbox.dataset.rate || 0) * Number(input.value || 0));
+                updateSummary();
+            }));
+            const updateSavedCardFields = () => {
+                if (!savedCardSelect || !newCardFields) return;
+                newCardFields.hidden = savedCardSelect.value !== '';
+            };
+            if (savedCardSelect) savedCardSelect.addEventListener('change', updateSavedCardFields);
             if (method) method.addEventListener('change', updateCardDetails);
             const paymentForm = document.getElementById('flexible-payment-form');
             if (paymentForm) {
@@ -164,6 +176,7 @@ else
             }
             updateSummary();
             updateCardDetails();
+            updateSavedCardFields();
         })();
     </script>
 }

@@ -14,9 +14,9 @@ namespace BricksAndBooks.Models.ViewModels
         }
 
         [Required]
-        [EmailAddress]
-        [RegularExpression(@"(?i)^[^@\s]+@ufs\.ac\.za$", ErrorMessage = "Use your official University of the Free State email address ending in @ufs.ac.za.")]
-        [Display(Name = "University email")]
+        [EmailAddress(ErrorMessage = "Enter a valid personal email address.")]
+        [StringLength(150)]
+        [Display(Name = "Personal email address")]
         public string Email { get; set; } = string.Empty;
 
         [Required]

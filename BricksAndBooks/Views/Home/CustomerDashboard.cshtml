@@ -31,8 +31,8 @@
     <section class="alert alert-warning mb-4">
         <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
             <div>
-                <strong><i class="fa-solid fa-circle-exclamation me-2"></i>@(payableBill.IsOverdue ? "Your payment needs attention" : "You have a bill ready for payment")</strong>
-                <div class="small mt-1">@(new DateTime(payableBill.Year, payableBill.Month, 1).ToString("MMMM yyyy")) charges are open. Select the exact items you want to pay from your bill.</div>
+                <strong><i class="fa-solid fa-circle-exclamation me-2"></i>You have a bill ready for payment</strong>
+                <div class="small mt-1">@(new DateTime(payableBill.Year, payableBill.Month, 1).ToString("MMMM yyyy")) charges are open. Select the exact items you want to pay whenever you are ready.</div>
             </div>
             <a asp-controller="Payment" asp-action="Process" class="btn btn-warning"><i class="fa-solid fa-arrow-right me-2"></i>Choose charges</a>
         </div>
@@ -87,10 +87,10 @@ else if (Model.Unit != null && !Model.RecentBills.Any())
     <div class="col-xl-7">
         <article class="card h-100">
             <div class="card-header command-panel-heading"><div><span class="eyebrow">Billing</span><h3>Recent bills</h3></div><a asp-controller="Payment" asp-action="MyBills" class="btn btn-sm btn-light">All bills</a></div>
-            <div class="table-responsive"><table class="table mb-0"><thead><tr><th>Billing period</th><th>Deadline</th><th>Total</th><th>Status</th><th></th></tr></thead><tbody>
+            <div class="table-responsive"><table class="table mb-0"><thead><tr><th>Billing period</th><th>Billing date</th><th>Total</th><th>Status</th><th></th></tr></thead><tbody>
             @foreach (var bill in Model.RecentBills)
             {
-                <tr><td><strong>@(new DateTime(bill.Year, bill.Month, 1).ToString("MMMM yyyy"))</strong></td><td>@bill.DueDate.ToString("dd MMM yyyy")</td><td class="fw-semibold">@bill.TotalAmount.ToString("C")</td><td><span class="badge @(bill.Status == BricksAndBooks.Models.BillStatus.Paid ? "bg-success" : bill.IsOverdue ? "bg-danger" : "bg-warning")">@(bill.Status == BricksAndBooks.Models.BillStatus.Paid ? "Verified paid" : bill.IsOverdue ? "Overdue" : "Payment required")</span></td><td class="text-end">@if (bill.Status != BricksAndBooks.Models.BillStatus.Paid && bill.Status != BricksAndBooks.Models.BillStatus.Cancelled) { <a asp-controller="Payment" asp-action="Process" class="btn btn-sm btn-primary">Pay charges</a> }</td></tr>
+                <tr><td><strong>@(new DateTime(bill.Year, bill.Month, 1).ToString("MMMM yyyy"))</strong></td><td>@bill.DueDate.ToString("dd MMM yyyy")</td><td class="fw-semibold">@bill.TotalAmount.ToString("C")</td><td><span class="badge @(bill.Status == BricksAndBooks.Models.BillStatus.Paid ? "bg-success" : "bg-warning")">@(bill.Status == BricksAndBooks.Models.BillStatus.Paid ? "Verified paid" : "Payment required")</span></td><td class="text-end">@if (bill.Status != BricksAndBooks.Models.BillStatus.Paid && bill.Status != BricksAndBooks.Models.BillStatus.Cancelled) { <a asp-controller="Payment" asp-action="Process" class="btn btn-sm btn-primary">Pay charges</a> }</td></tr>
             }
             @if (!Model.RecentBills.Any()) { <tr><td colspan="5" class="text-center text-muted py-5">No bills have been issued to your account yet.</td></tr> }
             </tbody></table></div>

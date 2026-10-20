@@ -30,7 +30,7 @@
     <link rel="apple-touch-icon" href="~/images/bnb-logo-square.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Source+Serif+4:wght@600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&family=DM+Serif+Display&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
@@ -76,7 +76,8 @@
                 else if (User.Identity?.IsAuthenticated == true)
                 {
                     <a class="side-nav-link @(currentController == "Payment" && currentAction == "MyBills" ? "active" : "")" asp-controller="Payment" asp-action="MyBills"><i class="fa-solid fa-file-invoice-dollar"></i><span>My bills</span></a>
-                    <a class="side-nav-link @(currentController == "Payment" && currentAction != "MyBills" ? "active" : "")" asp-controller="Payment" asp-action="Index"><i class="fa-solid fa-arrow-right-arrow-left"></i><span>Payment history</span></a>
+                    <a class="side-nav-link @(currentController == "Payment" && currentAction == "Index" ? "active" : "")" asp-controller="Payment" asp-action="Index"><i class="fa-solid fa-arrow-right-arrow-left"></i><span>Payment history</span></a>
+                    <a class="side-nav-link @(currentController == "Payment" && currentAction == "SavedCards" ? "active" : "")" asp-controller="Payment" asp-action="SavedCards"><i class="fa-regular fa-credit-card"></i><span>My cards</span></a>
                 }
                 <span class="nav-section-label">Operations</span>
                 @if (User.Identity?.IsAuthenticated == true)
@@ -122,6 +123,13 @@
                     <div class="topbar-brand-mark"><img src="~/images/bnb-logo.png" class="topbar-logo" alt="Bricks & Books logo" /><div><span class="eyebrow">Student-centred residence services</span><h1 class="topbar-title">@pageTitle</h1></div></div>
                 </div>
                 <div class="topbar-actions">
+                    @if (currentController == "Home" && User.Identity?.IsAuthenticated != true)
+                    {
+                        <nav class="public-topbar-links" aria-label="Public navigation">
+                            <a href="#residences">Residences</a>
+                            <a asp-controller="Support" asp-action="Index">Support</a>
+                        </nav>
+                    }
                     @if (User.Identity?.IsAuthenticated == true && !(currentController == "Home" && currentAction == "Index"))
                     {
                         <a class="icon-button" asp-controller="Chat" asp-action="Index" aria-label="Messages"><i class="fa-regular fa-message"></i><span class="icon-badge" id="chat-unread-badge" data-count="0">0</span></a>
@@ -142,7 +150,8 @@
                     }
                     else
                     {
-                        <a class="btn btn-primary btn-sm" asp-controller="Account" asp-action="Login">Sign in</a>
+                        <a class="public-sign-in" asp-controller="Account" asp-action="Login">Sign in</a>
+                        <a class="btn btn-primary btn-sm public-header-cta" asp-controller="Account" asp-action="Register">Create account</a>
                     }
                 </div>
             </header>
@@ -154,9 +163,23 @@
                 @RenderBody()
             </div>
             <div id="notification-toast-region" class="notification-toast-region" aria-live="polite" aria-atomic="true"></div>
-            <footer class="app-footer">
-                <div><strong>Bricks &amp; Books</strong><span>Residence accommodation management</span></div>
-                <div class="footer-links"><a asp-controller="Chat" asp-action="Index">Support</a><a asp-controller="Home" asp-action="Privacy">Privacy</a><span>© 2026</span></div>
+            <footer class="app-footer institutional-footer">
+                <div class="institutional-footer-grid">
+                    <div class="footer-brand-column">
+                        <a asp-controller="Home" asp-action="Index" class="footer-brand">Bricks &amp; Books</a>
+                        <p>Online residence services for the University of the Free State community.</p>
+                        <div class="footer-socials" aria-label="Social media links">
+                            <a href="https://www.facebook.com/ufsweb/" target="_blank" rel="noopener" aria-label="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
+                            <a href="https://x.com/UFSweb" target="_blank" rel="noopener" aria-label="X"><i class="fa-brands fa-x-twitter"></i></a>
+                            <a href="https://www.instagram.com/ufsweb/" target="_blank" rel="noopener" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
+                            <a href="https://www.linkedin.com/school/ufsweb" target="_blank" rel="noopener" aria-label="LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a>
+                        </div>
+                    </div>
+                    <div class="footer-column"><h2>About</h2><a asp-controller="Home" asp-action="Index">About Bricks &amp; Books</a><a asp-controller="Home" asp-action="Privacy">Privacy notice</a><a asp-controller="Home" asp-action="Privacy">Terms of use</a><a asp-controller="Chat" asp-action="Index">Contact estate office</a></div>
+                    <div class="footer-column"><h2>Quick links</h2><a asp-controller="Accommodation" asp-action="Index">Estate units</a><a asp-controller="Account" asp-action="Login">Log in</a><a asp-controller="Account" asp-action="Register">Register</a><a asp-controller="Payment" asp-action="Index">Pay utilities</a></div>
+                    <div class="footer-column footer-address"><h2>Address</h2><p><i class="fa-solid fa-location-dot"></i> UFS QwaQwa Campus<br />Kestell Road, Phuthaditjhaba<br />Free State, 9866<br />South Africa</p><a href="tel:+27587185000"><i class="fa-solid fa-phone"></i> 058 718 5000</a><a href="mailto:estate@qwaqwa.ufs.ac.za"><i class="fa-regular fa-envelope"></i> estate@qwaqwa.ufs.ac.za</a></div>
+                </div>
+                <div class="footer-bottom"><span>Inspiring excellence, transforming lives through quality, impact, and care.</span><span>© 2026 Bricks &amp; Books</span></div>
             </footer>
         </main>
     </div>

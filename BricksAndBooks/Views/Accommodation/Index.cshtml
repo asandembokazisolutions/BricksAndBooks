@@ -1,75 +1,128 @@
 @model IEnumerable<BricksAndBooks.Models.Accommodation>
-
+@using System.Collections.Generic
 @{
-    ViewData["Title"] = "Accommodation";
+    ViewData["Title"] = "Find accommodation";
     var accommodations = Model.ToList();
+    decimal? rentRate = ViewBag.MonthlyRentRate as decimal?;
+    var fallback = Url.Content("~/images/residence-hero.jpg");
+    var reviewCounts = ViewBag.ReviewCounts as Dictionary<int, int> ?? new Dictionary<int, int>();
+    var reviewAverages = ViewBag.ReviewAverages as Dictionary<int, double> ?? new Dictionary<int, double>();
 }
-
-<div class="page-intro d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
-    <div>
-        <span class="eyebrow">Residence services</span>
-        <h2 class="mb-1">Find accommodation</h2>
-        <p class="text-muted mb-0">Explore available residences and submit an application for your preferred home.</p>
+<section class="residence-hero">
+    <div class="residence-hero-copy">
+        <div class="residence-eyebrow"><span class="eyebrow-mark"><i class="fa-solid fa-house"></i></span> BRICKS &amp; BOOKS <span class="eyebrow-divider">/</span> UNIVERSITY RESIDENCES</div>
+        <h1>Find a place that<br /><span>feels like yours.</span></h1>
+        <p>Explore residence options, compare availability and find a space that fits your student life.</p>
+        <div class="hero-proof"><span><i class="fa-solid fa-circle-check"></i> University residence listings</span><span><i class="fa-solid fa-magnifying-glass"></i> Search by name or area</span></div>
     </div>
-    @if (User.IsInRole("Admin"))
+    <div class="residence-search-panel">
+        <label class="search-field search-destination"><span class="search-icon"><i class="fa-solid fa-location-dot"></i></span><span class="search-copy"><small>DESTINATION</small><input id="stay-search" type="search" placeholder="Residence name or area" autocomplete="off" /></span></label>
+        <label class="search-field"><span class="search-icon"><i class="fa-solid fa-door-open"></i></span><span class="search-copy"><small>AVAILABILITY</small><select id="availability-filter"><option value="all">Any availability</option><option value="available">Available rooms</option></select></span></label>
+        <button type="button" class="residence-search-button" id="search-stays"><i class="fa-solid fa-arrow-right"></i><span>Search residences</span></button>
+    </div>
+    <div class="hero-orbit orbit-one"></div><div class="hero-orbit orbit-two"></div>
+</section>
+@if (TempData["UnitNavigationMessage"] != null) { <div class="alert alert-info mt-4">@TempData["UnitNavigationMessage"]</div> }
+<section class="residence-results">
+    <header class="results-header">
+        <div><span class="section-eyebrow">YOUR NEXT CHAPTER</span><h2>Explore residences</h2><p>Compare rooms, location, monthly pricing and resident feedback.</p></div>
+        <div class="results-header-right"><span class="results-count"><span class="count-dot"></span><strong id="stay-result-count">@accommodations.Count</strong> residences</span>@if (User.IsInRole("Admin")) { <a asp-action="Create" class="add-residence-button"><i class="fa-solid fa-plus"></i> Add residence</a> }</div>
+    </header>
+    @if (!accommodations.Any())
     {
-        <a asp-action="Create" class="btn btn-primary"><i class="fa-solid fa-plus me-2"></i>Add accommodation</a>
+        <div class="residence-empty"><span class="empty-building"><i class="fa-solid fa-building-circle-exclamation"></i></span><h3>No residences listed yet</h3><p>Residence options will appear here when they are added to the portal.</p>@if (User.IsInRole("Admin")) { <a asp-action="Create" class="add-residence-button"><i class="fa-solid fa-plus"></i> Add a residence</a> }</div>
     }
-</div>
-
-@if (TempData["UnitNavigationMessage"] != null)
-{
-    <div class="alert alert-info mb-4"><i class="fa-solid fa-circle-info me-2"></i>@TempData["UnitNavigationMessage"]</div>
-}
-
-@if (!accommodations.Any())
-{
-    <div class="card empty-state text-center p-5">
-        <span class="empty-icon mx-auto mb-3"><i class="fa-solid fa-building"></i></span>
-        <h3 class="h5">No residences are available yet</h3>
-        <p class="text-muted mb-0">Residence information will appear here once it has been published.</p>
-    </div>
-}
-else
-{
-    <div class="row g-4">
+    else
+    {
+        <div class="residence-list" id="stay-results">
         @foreach (var item in accommodations)
         {
-            <div class="col-md-6 col-xl-4">
-                <article class="card residence-directory-card h-100">
-                    @{ var coverImage = item.ImageUrls?.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault(); }
-                    <div class="residence-card-banner">@if (!string.IsNullOrWhiteSpace(coverImage)) { <img src="@Url.Content(coverImage)" alt="Photo of @item.Name" loading="lazy" /> } else { <i class="fa-solid fa-building-columns"></i> }</div>
-                    <div class="card-body d-flex flex-column">
-                        <span class="eyebrow">University residence</span>
-                        <h3 class="h5 mt-2 mb-2">@item.Name</h3>
-                        <p class="text-muted small mb-3"><i class="fa-solid fa-location-dot me-2 text-primary"></i>@item.Address</p>
-                        <p class="small flex-grow-1">@(string.IsNullOrWhiteSpace(item.Description) ? "Managed accommodation with residence support and student-focused services." : item.Description)</p>
-                        <div class="d-flex gap-2 pt-3 border-top">
-                            <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-primary btn-sm flex-grow-1">View details</a>
-                            @if ((User.IsInRole("Student") || User.IsInRole("Staff")) && !(ViewBag.HasActiveAccommodation ?? false))
-                            {
-                                <a asp-controller="AccommodationApplication" asp-action="Apply" class="btn btn-primary btn-sm">Apply</a>
-                            }
-                            else if ((User.IsInRole("Student") || User.IsInRole("Staff")) && (ViewBag.HasActiveAccommodation ?? false))
-                            {
-                                <span class="badge text-bg-success align-self-center">Already allocated</span>
-                            }
-                            @if (User.IsInRole("Admin"))
-                            {
-                                <a asp-controller="Unit" asp-action="Index" asp-route-accommodationId="@item.Id" class="btn btn-light btn-sm" title="Manage units"><i class="fa-solid fa-sliders"></i></a>
-                                <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-outline-danger btn-sm" title="Delete accommodation"><i class="fa-solid fa-trash"></i><span class="visually-hidden">Delete @item.Name</span></a>
-                            }
-                        </div>
+            var coverImage = item.ImageUrls?.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault();
+            var available = item.Units.Count(unit => unit.IsAvailable);
+            var totalUnits = item.Units.Count;
+            var searchable = $"{item.Name} {item.Address} {item.Description}".ToLowerInvariant();
+            var reviewCount = reviewCounts.TryGetValue(item.Id, out var count) ? count : 0;
+            var reviewAverage = reviewAverages.TryGetValue(item.Id, out var average) ? average : 0;
+            <article class="residence-card" data-search="@searchable" data-available="@(available > 0 ? "true" : "false")">
+                <a class="residence-photo" asp-action="Details" asp-route-id="@item.Id" aria-label="View @item.Name">
+                    <img src="@(string.IsNullOrWhiteSpace(coverImage) ? fallback : Url.Content(coverImage))" alt="Residence at @item.Name" loading="lazy" onerror="this.onerror=null;this.src='@fallback';" />
+                    <span class="photo-count"><i class="fa-regular fa-images"></i> Residence photos</span>
+                    <span class="photo-corner-mark"><i class="fa-solid fa-arrow-up-right-from-square"></i></span>
+                </a>
+                <div class="residence-card-content">
+                    <div class="residence-heading-row">
+                        <div class="residence-title-block"><span class="verified-label"><i class="fa-solid fa-circle-check"></i> BRICKS &amp; BOOKS RESIDENCE</span><h3><a asp-action="Details" asp-route-id="@item.Id">@item.Name</a></h3></div>
+                        @if (reviewCount > 0)
+                        {
+                            <div class="rating-chip"><span class="rating-value">@reviewAverage.ToString("0.0")</span><span class="rating-star"><i class="fa-solid fa-star"></i></span><span class="rating-total">@reviewCount review@(reviewCount == 1 ? "" : "s")</span></div>
+                        }
+                        else
+                        {
+                            <div class="rating-chip unrated"><span class="rating-value">New</span><span class="rating-total">No ratings yet</span></div>
+                        }
                     </div>
-                </article>
-            </div>
+                    <p class="residence-address"><i class="fa-solid fa-location-dot"></i><span>@item.Address</span></p>
+                    <p class="residence-description">@(string.IsNullOrWhiteSpace(item.Description) ? "Student residence with support from the Bricks & Books residence team." : item.Description)</p>
+                    <div class="residence-features">
+                        <span><i class="fa-solid fa-door-open"></i><strong>@totalUnits</strong> room@(totalUnits == 1 ? "" : "s")</span>
+                        <span><i class="fa-solid fa-bed"></i><strong>@available</strong> available</span>
+                        <span><i class="fa-solid fa-people-group"></i>Single &amp; shared options</span>
+                    </div>
+                </div>
+                <aside class="residence-offer">
+                    <span class="availability-label @(available > 0 ? "available" : "full")"><span class="status-dot"></span>@(available > 0 ? $"{available} room{(available == 1 ? "" : "s")} available" : "Currently full")</span>
+                    <div class="offer-price">
+                        @if (rentRate.HasValue)
+                        {
+                            <span class="price-caption">MONTHLY RENT FROM</span><strong>@rentRate.Value.ToString("C")</strong><span class="price-footnote">Per month · utilities may be separate</span>
+                        }
+                        else
+                        {
+                            <span class="price-caption">MONTHLY RENT</span><strong class="price-contact">Ask residence team</strong><span class="price-footnote">Rates not listed online</span>
+                        }
+                    </div>
+                    <a asp-action="Details" asp-route-id="@item.Id" class="view-residence-button">View residence <i class="fa-solid fa-arrow-right"></i></a>
+                    @if ((User.IsInRole("Student") || User.IsInRole("Staff")) && !(ViewBag.HasActiveAccommodation ?? false)) { <a asp-controller="AccommodationApplication" asp-action="Apply" class="apply-residence-link">Apply for accommodation</a> }
+                    @if (User.IsInRole("Admin")) { <div class="admin-actions"><a asp-controller="Unit" asp-action="Index" asp-route-accommodationId="@item.Id">Manage rooms</a><a asp-action="Delete" asp-route-id="@item.Id">Delete</a></div> }
+                </aside>
+            </article>
         }
-    </div>
-}
-
+        </div>
+        <div id="stay-empty-search" class="residence-empty search-empty" hidden><span class="empty-building"><i class="fa-solid fa-magnifying-glass"></i></span><h3>No matching residences</h3><p>Try another residence name or change the availability filter.</p><button type="button" class="reset-search" id="reset-stay-search">Clear search</button></div>
+    }
+</section>
 <style>
-    .residence-directory-card { overflow: hidden; transition: transform .18s ease, box-shadow .18s ease; }
-    .residence-directory-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
-    .residence-card-banner { min-height: 112px; display: grid; place-items: center; color: #fff; font-size: 2.2rem; background: linear-gradient(120deg, var(--navy-deep), var(--navy)); overflow: hidden; }
-    .residence-card-banner img { width: 100%; height: 150px; object-fit: cover; }
+.residence-hero{position:relative;isolation:isolate;overflow:hidden;border-radius:24px;padding:38px clamp(22px,4vw,54px) 25px;background:radial-gradient(ellipse at 84% 12%,#245e72 0,transparent 35%),linear-gradient(116deg,#082b45 0%,#0a405a 60%,#0d5265 100%);box-shadow:0 22px 50px #0a30401c;color:#fff}.residence-hero-copy{position:relative;z-index:1;max-width:650px}.residence-eyebrow,.section-eyebrow{display:flex;align-items:center;gap:9px;color:#90d4ce;font-size:.68rem;font-weight:800;letter-spacing:.15em}.eyebrow-mark{display:grid;place-items:center;width:25px;height:25px;border:1px solid #81c8c277;border-radius:8px;font-size:.68rem}.eyebrow-divider{opacity:.55}.residence-hero h1{font-size:clamp(2.25rem,4vw,3.5rem);line-height:1.05;letter-spacing:-.045em;font-weight:800;margin:22px 0 10px}.residence-hero h1 span{color:#a4ddd4}.residence-hero-copy>p{max-width:530px;color:#d5e5eb;font-size:.98rem;line-height:1.65;margin-bottom:17px}.hero-proof{display:flex;flex-wrap:wrap;gap:8px 22px;color:#e4eff2;font-size:.76rem}.hero-proof i{color:#86d3bb;margin-right:6px}.residence-search-panel{position:relative;z-index:2;display:grid;grid-template-columns:minmax(250px,1.4fr) minmax(200px,.9fr) auto;gap:0;align-items:stretch;margin-top:27px;padding:8px;background:#fff;border:1px solid #ffffff70;border-radius:15px;box-shadow:0 13px 34px #041f2b30;color:#17384c}.search-field{display:flex;align-items:center;gap:12px;min-width:0;padding:8px 17px;border-right:1px solid #e5ebef}.search-icon{display:grid;place-items:center;width:38px;height:38px;flex:0 0 38px;border-radius:11px;background:#eef7f5;color:#087c79}.search-copy{display:grid;min-width:0;flex:1}.search-copy small{color:#627884;font-size:.62rem;font-weight:800;letter-spacing:.12em}.search-copy input,.search-copy select{width:100%;min-width:0;border:0;outline:0;background:transparent;color:#18384c;font-size:.9rem;font-weight:650;padding:3px 0}.search-copy input::placeholder{color:#82919a;font-weight:450}.residence-search-button{display:flex;align-items:center;justify-content:center;gap:12px;min-width:176px;padding:0 20px;border:0;border-radius:11px;background:#0c7180;color:#fff;font-size:.85rem;font-weight:750;transition:background .2s,transform .2s}.residence-search-button:hover{background:#075c69;transform:translateY(-1px)}.residence-search-button i{font-size:.8rem}.hero-orbit{position:absolute;z-index:-1;border:1px solid #a4ddd418;border-radius:50%;pointer-events:none}.orbit-one{width:470px;height:470px;right:-55px;top:-280px}.orbit-two{width:620px;height:620px;right:-130px;top:-360px}.residence-results{padding:35px 0 20px}.results-header{display:flex;align-items:end;justify-content:space-between;gap:18px;margin:0 0 17px}.section-eyebrow{color:#14827e;font-size:.62rem}.results-header h2{margin:6px 0 5px;color:#12364d;font-size:1.65rem;letter-spacing:-.035em;font-weight:780}.results-header p{margin:0;color:#687b88;font-size:.88rem}.results-header-right{display:flex;align-items:center;gap:14px}.results-count{display:flex;align-items:center;gap:7px;color:#627985;font-size:.78rem;white-space:nowrap}.results-count strong{color:#183c50;font-size:.9rem}.count-dot,.status-dot{width:8px;height:8px;border-radius:50%;background:#33a573;display:inline-block}.add-residence-button{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid #d3e0e6;border-radius:10px;color:#15546a;text-decoration:none;font-size:.8rem;font-weight:700;background:#fff}.add-residence-button:hover{border-color:#0b7880;background:#f3faf9;color:#0b6470}.residence-list{display:grid;gap:15px}.residence-card{display:grid;grid-template-columns:minmax(250px,31%) minmax(250px,1fr) minmax(205px,230px);min-height:256px;overflow:hidden;background:#fff;border:1px solid #dce5e9;border-radius:17px;box-shadow:0 4px 17px #16384a0b;transition:border-color .2s,box-shadow .2s,transform .2s}.residence-card:hover{border-color:#b6cbd2;box-shadow:0 13px 30px #14364a17;transform:translateY(-2px)}.residence-photo{position:relative;display:block;min-height:256px;overflow:hidden;background:#e8f0f1}.residence-photo:after{position:absolute;inset:40% 0 0;content:"";background:linear-gradient(transparent,#071b2580);pointer-events:none}.residence-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .45s cubic-bezier(.2,.7,.2,1)}.residence-card:hover .residence-photo img{transform:scale(1.045)}.photo-count{position:absolute;z-index:1;left:15px;bottom:15px;display:flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid #ffffff80;border-radius:8px;background:#ffffffed;color:#233f4e;font-size:.7rem;font-weight:750;box-shadow:0 4px 12px #0002}.photo-corner-mark{position:absolute;z-index:1;right:14px;top:14px;display:grid;place-items:center;width:34px;height:34px;border:1px solid #ffffffb0;border-radius:10px;background:#ffffffdc;color:#17465a}.residence-card-content{display:flex;flex-direction:column;padding:22px 22px 19px;min-width:0}.residence-heading-row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.verified-label{display:flex;align-items:center;gap:5px;color:#087d78;font-size:.59rem;letter-spacing:.095em;font-weight:850}.verified-label i{font-size:.7rem}.residence-title-block h3{margin:7px 0 0;color:#11364c;font-size:1.34rem;line-height:1.2;font-weight:780;letter-spacing:-.025em}.residence-title-block h3 a{color:inherit;text-decoration:none}.residence-title-block h3 a:hover{color:#087a85}.rating-chip{display:flex;align-items:center;gap:5px;padding:7px 9px;border:1px solid #e5ebed;border-radius:9px;background:#fbfcfc;white-space:nowrap}.rating-value{color:#164256;font-size:.83rem;font-weight:800}.rating-star{color:#edae39;font-size:.72rem}.rating-total{color:#6b7f88;font-size:.65rem}.rating-chip.unrated{display:grid;gap:1px;text-align:right;background:#fff}.rating-chip.unrated .rating-value{font-size:.76rem}.residence-address{display:flex;align-items:flex-start;gap:7px;margin:12px 0 9px;color:#247189;font-size:.78rem;line-height:1.45}.residence-address i{margin-top:2px;color:#18867f}.residence-description{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;margin:0 0 16px;color:#5b6d78;font-size:.8rem;line-height:1.6}.residence-features{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto}.residence-features span{display:flex;align-items:center;gap:6px;padding:7px 9px;border:1px solid #e7edef;border-radius:8px;background:#fbfdfd;color:#60727b;font-size:.68rem;white-space:nowrap}.residence-features i{color:#14827e;font-size:.73rem}.residence-features strong{color:#294958;font-weight:800}.residence-offer{display:flex;flex-direction:column;align-items:stretch;justify-content:space-between;gap:12px;padding:20px 17px;border-left:1px solid #e9eef0;background:linear-gradient(160deg,#fcfdfd,#f8fbfa)}.availability-label{display:inline-flex;align-items:center;align-self:flex-end;gap:7px;padding:6px 9px;border-radius:999px;background:#e8f6ef;color:#1d704d;font-size:.67rem;font-weight:750;white-space:nowrap}.availability-label.full{background:#f1f2f3;color:#68747b}.availability-label.full .status-dot{background:#9aa5a9}.offer-price{display:grid;gap:3px;margin-top:auto;text-align:right}.price-caption{color:#77878e;font-size:.58rem;font-weight:850;letter-spacing:.11em}.offer-price strong{color:#143c50;font-size:1.47rem;line-height:1.15;letter-spacing:-.035em}.offer-price .price-contact{font-size:.93rem;letter-spacing:0}.price-footnote{color:#7c898e;font-size:.64rem}.view-residence-button{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 13px;border:1px solid #0c7180;border-radius:9px;background:#0c7180;color:#fff;text-decoration:none;font-size:.79rem;font-weight:750;transition:background .2s,transform .2s}.view-residence-button:hover{background:#095c69;color:#fff;transform:translateY(-1px)}.view-residence-button i{font-size:.72rem}.apply-residence-link{text-align:center;color:#087887;text-decoration:none;font-size:.7rem;font-weight:700}.apply-residence-link:hover{text-decoration:underline}.admin-actions{display:flex;justify-content:space-between;gap:10px;border-top:1px solid #e6edef;padding-top:9px}.admin-actions a{color:#607984;text-decoration:none;font-size:.67rem;font-weight:700}.admin-actions a:last-child{color:#a74b4b}.admin-actions a:hover{text-decoration:underline}.residence-empty{display:grid;justify-items:center;padding:55px 20px;border:1px dashed #cbd9de;border-radius:18px;background:#fbfdfd;text-align:center}.empty-building{display:grid;place-items:center;width:54px;height:54px;margin-bottom:13px;border-radius:16px;background:#e8f4f2;color:#0d777a;font-size:1.15rem}.residence-empty h3{margin:0 0 7px;color:#15394c;font-size:1.16rem;font-weight:760}.residence-empty p{margin:0 0 16px;color:#6d7f87;font-size:.84rem}.search-empty[hidden]{display:none!important}.reset-search{border:0;background:transparent;color:#087887;font-size:.8rem;font-weight:750;text-decoration:underline}@@media(max-width:1050px){.residence-card{grid-template-columns:minmax(220px,30%) minmax(230px,1fr) 205px}.residence-card-content{padding:18px}.residence-features{gap:6px}.residence-features span{padding:6px 7px;font-size:.64rem}}@@media(max-width:800px){.residence-hero{padding:28px 22px 20px}.residence-search-panel{grid-template-columns:1fr 1fr;row-gap:5px}.search-field{padding:7px 11px}.search-destination{border-right:1px solid #e5ebef}.residence-search-button{grid-column:1/-1;min-height:46px}.residence-card{grid-template-columns:minmax(215px,38%) minmax(0,1fr)}.residence-photo{grid-row:1/3;min-height:280px}.residence-offer{grid-column:2;display:grid;grid-template-columns:1fr auto;align-items:center;border-left:0;border-top:1px solid #e9eef0;padding:13px 17px}.availability-label{grid-column:1/-1;justify-self:start}.offer-price{text-align:left;margin:0}.view-residence-button{min-width:145px}.apply-residence-link,.admin-actions{grid-column:1/-1}.rating-chip{padding:6px}.residence-heading-row{gap:8px}}@@media(max-width:580px){.residence-hero{border-radius:17px;padding:23px 16px 16px}.residence-hero h1{font-size:2.25rem;margin-top:17px}.residence-hero-copy>p{font-size:.88rem}.hero-proof{gap:8px 14px;font-size:.68rem}.residence-search-panel{grid-template-columns:1fr;margin-top:20px;padding:7px}.search-field{border-right:0;border-bottom:1px solid #e5ebef}.residence-search-button{grid-column:auto}.results-header{align-items:flex-start;flex-direction:column}.results-header-right{width:100%;justify-content:space-between}.residence-results{padding-top:27px}.residence-card{grid-template-columns:1fr}.residence-photo{grid-row:auto;min-height:225px;height:225px}.residence-card-content{padding:17px 16px}.residence-heading-row{align-items:flex-start}.residence-title-block h3{font-size:1.2rem}.rating-chip{gap:4px}.rating-total{font-size:.6rem}.residence-offer{grid-column:auto;grid-template-columns:1fr;gap:11px;padding:15px 16px}.availability-label{grid-column:auto}.offer-price{text-align:left}.view-residence-button{width:100%}.apply-residence-link,.admin-actions{grid-column:auto}.residence-features span{font-size:.63rem}.residence-description{margin-bottom:13px}}
 </style>
+@section Scripts {
+<script>
+(() => {
+    const search = document.getElementById('stay-search');
+    const availability = document.getElementById('availability-filter');
+    const cards = Array.from(document.querySelectorAll('.residence-card'));
+    const empty = document.getElementById('stay-empty-search');
+    const counter = document.getElementById('stay-result-count');
+    const runSearch = () => {
+        const term = (search?.value || '').trim().toLocaleLowerCase();
+        const availableOnly = availability?.value === 'available';
+        let visible = 0;
+        cards.forEach(card => {
+            const textMatches = (card.dataset.search || '').includes(term);
+            const availabilityMatches = !availableOnly || card.dataset.available === 'true';
+            card.hidden = !(textMatches && availabilityMatches);
+            if (!card.hidden) visible++;
+        });
+        if (counter) counter.textContent = visible.toString();
+        if (empty) empty.hidden = visible > 0;
+    };
+    search?.addEventListener('input', runSearch);
+    availability?.addEventListener('change', runSearch);
+    document.getElementById('search-stays')?.addEventListener('click', runSearch);
+    document.getElementById('reset-stay-search')?.addEventListener('click', () => {
+        if (search) search.value = '';
+        if (availability) availability.value = 'all';
+        runSearch();
+    });
+})();
+</script>
+}

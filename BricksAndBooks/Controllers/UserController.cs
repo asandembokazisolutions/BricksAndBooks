@@ -67,7 +67,8 @@ namespace BricksAndBooks.Controllers
             bool isStudent,
             bool isStaff,
             bool isFinancialOfficer,
-            bool isAdmin)
+            bool isAdmin,
+            bool isMaintenanceWorker)
         {
             if (!CanManageRoles)
             {
@@ -86,7 +87,8 @@ namespace BricksAndBooks.Controllers
                 IsStudent = isStudent,
                 IsStaff = isStaff,
                 IsFinancialOfficer = isFinancialOfficer,
-                IsAdmin = isAdmin
+                IsAdmin = isAdmin,
+                IsMaintenanceWorker = isMaintenanceWorker
             };
 
             ValidateNewUser(formUser, password, confirmPassword);

@@ -26,7 +26,7 @@
             <td>@item.Method</td>
             <td><span class="badge @(item.Status == BricksAndBooks.Models.PaymentStatus.Successful ? "bg-success" : item.Status == BricksAndBooks.Models.PaymentStatus.Pending ? "bg-warning text-dark" : "bg-secondary")">@item.Status</span></td>
             <td>@item.PaymentDate.ToLocalTime().ToString("dd MMM yyyy")</td>
-            <td class="text-end pe-3"><a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">Details</a> @if (canVerify && item.Status == BricksAndBooks.Models.PaymentStatus.Pending) { <a asp-action="Verify" asp-route-id="@item.Id" class="btn btn-sm btn-warning">Verify</a> }</td>
+            <td class="text-end pe-3"><a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">Details</a> @if (canVerify && (item.Status is BricksAndBooks.Models.PaymentStatus.Pending or BricksAndBooks.Models.PaymentStatus.Failed or BricksAndBooks.Models.PaymentStatus.Cancelled)) { <a asp-action="Verify" asp-route-id="@item.Id" class="btn btn-sm btn-warning">@(item.Status == BricksAndBooks.Models.PaymentStatus.Pending ? "Verify" : "Review again")</a> }</td>
         </tr>
     }
     @if (!Model.Any())

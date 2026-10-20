@@ -35,6 +35,8 @@ namespace BricksAndBooks.Models
         [Required]
         [Column(TypeName = "decimal(18,2)")]
         public decimal Amount { get; set; }
+        // Units/litres selected for a metered utility line; zero for fixed charges.
+        public decimal Quantity { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }

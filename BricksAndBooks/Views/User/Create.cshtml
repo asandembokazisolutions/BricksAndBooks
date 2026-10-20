@@ -39,7 +39,8 @@
                     <h3 class="h6">Additional system access</h3>
                     <p class="text-muted small">Only Administrators can assign Financial Officer and Administrator permissions.</p>
                     <div class="form-check mb-2"><input class="form-check-input" type="checkbox" asp-for="IsFinancialOfficer" /><label class="form-check-label" asp-for="IsFinancialOfficer">Financial Officer — can verify payments</label></div>
-                    <div class="form-check mb-4"><input class="form-check-input" type="checkbox" asp-for="IsAdmin" /><label class="form-check-label" asp-for="IsAdmin">Administrator</label></div>
+                    <div class="form-check mb-2"><input class="form-check-input" type="checkbox" asp-for="IsAdmin" /><label class="form-check-label" asp-for="IsAdmin">Administrator</label></div>
+                    <div class="form-check mb-4"><input class="form-check-input" type="checkbox" asp-for="IsMaintenanceWorker" /><label class="form-check-label" asp-for="IsMaintenanceWorker">Maintenance worker — can be assigned to residence tasks</label></div>
                 }
                 <button type="submit" class="btn btn-primary">Create user</button>
             </form>

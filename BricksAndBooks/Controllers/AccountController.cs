@@ -217,14 +217,8 @@ namespace BricksAndBooks.Controllers
             ViewData["ReturnUrl"] = returnUrl;
             returnUrl ??= Url.Content("~/");
 
-            if (string.IsNullOrWhiteSpace(model.Email) || !model.Email.Trim().EndsWith("@ufs.ac.za", StringComparison.OrdinalIgnoreCase))
-            {
-                ModelState.AddModelError(nameof(model.Email), "Use your official University of the Free State email address ending in @ufs.ac.za.");
-            }
-            else
-            {
-                model.Email = model.Email.Trim().ToLowerInvariant();
-            }
+            // A personal email is collected for account access and residence communication.
+            model.Email = model.Email?.Trim().ToLowerInvariant() ?? string.Empty;
 
             // Exactly one applicant type is required. The matching identifier is
             // validated and the other identifier is deliberately discarded.
@@ -326,15 +320,8 @@ namespace BricksAndBooks.Controllers
                 return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
             }
 
-            if (string.IsNullOrWhiteSpace(model.Email) || !model.Email.Trim().EndsWith("@ufs.ac.za", StringComparison.OrdinalIgnoreCase))
-            {
-                ModelState.AddModelError(nameof(model.Email), "Use your official University of the Free State email address ending in @ufs.ac.za.");
-            }
-            else
-            {
-                model.Email = model.Email.Trim().ToLowerInvariant();
-            }
-
+            // University email is assigned at registration and is not editable from this profile form.
+            model.Email = user.Email ?? string.Empty;
             if (ModelState.IsValid)
             {
                 user.FirstName = model.FirstName;

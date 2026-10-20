@@ -109,6 +109,11 @@ service cloud.firestore {
       allow create, delete: if isOperationsStaff();
     }
 
+    // Saved demo-card hashes/metadata are handled only by the server-side Firestore Admin SDK.
+    // Browser and mobile clients must never read or write card records directly.
+    match /savedPaymentCards/{cardId} {
+      allow read, write: if false;
+    }
     // Contains account-recovery workflow data. The MVC application accesses this
     // collection only through its Firestore Admin SDK credentials, which bypass rules.
     // No mobile or browser client may read, create, update, or delete these records.

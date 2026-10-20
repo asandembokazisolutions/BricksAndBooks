@@ -1,9 +1,11 @@
 @model BricksAndBooks.Models.Payment
 @{
-    ViewData["Title"] = "Verify payment";
+    var isResubmittedReview = Model.Status is BricksAndBooks.Models.PaymentStatus.Failed or BricksAndBooks.Models.PaymentStatus.Cancelled;
+    ViewData["Title"] = isResubmittedReview ? "Review payment again" : "Verify payment";
 }
 
-<h2 class="mb-1">Verify payment</h2>
+<h2 class="mb-1">@ViewData["Title"]</h2>
+@if (isResubmittedReview) { <div class="alert alert-info">This payment is currently marked <strong>@Model.Status</strong>. It can be reviewed again because it has not been finalized as successful.</div> }
 <p class="text-muted mb-4">Confirm the status of this submitted transaction. Approving it updates the paid status of all fully covered bills.</p>
 
 <form asp-action="Verify" method="post" class="row g-4">

@@ -1,0 +1,11 @@
+{
+  "routes": [
+    { "path": "/", "title": "Find your place at UFS" },
+    { "path": "/Accommodation", "title": "Accommodation" },
+    { "path": "/Accommodation/Details/:id", "title": "Residence details" },
+    { "path": "/Account/Login", "title": "Sign in" },
+    { "path": "/Account/Register", "title": "Create an account" },
+    { "path": "/Support", "title": "Support" },
+    { "path": "/Home/Privacy", "title": "Privacy" }
+  ]
+}

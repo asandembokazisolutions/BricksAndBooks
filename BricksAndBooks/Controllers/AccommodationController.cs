@@ -28,7 +28,21 @@ namespace BricksAndBooks.Controllers
         public async Task<IActionResult> Index()
         {
             var accommodations = _repositoryWrapper.Accommodation.FindAll().Include(a => a.Units).ToList();
+            var accommodationIds = accommodations.Select(accommodation => accommodation.Id).ToList();
+            var approvedReviews = _repositoryWrapper.Review.FindAll()
+                .Where(review => accommodationIds.Contains(review.AccommodationId) && review.IsApproved)
+                .Select(review => new { review.AccommodationId, review.Rating })
+                .ToList();
+            var reviewSummaries = approvedReviews.GroupBy(review => review.AccommodationId)
+                .ToDictionary(group => group.Key, group => new { Count = group.Count(), Average = group.Average(review => (double)review.Rating) });
+            ViewBag.ReviewCounts = reviewSummaries.ToDictionary(item => item.Key, item => item.Value.Count);
+            ViewBag.ReviewAverages = reviewSummaries.ToDictionary(item => item.Key, item => item.Value.Average);
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            ViewBag.MonthlyRentRate = _repositoryWrapper.Tariff.FindAll()
+                .Where(tariff => tariff.Type == TariffType.Rent && tariff.EffectiveFrom <= DateTime.UtcNow
+                    && (tariff.EffectiveTo == null || tariff.EffectiveTo >= DateTime.UtcNow))
+                .OrderByDescending(tariff => tariff.EffectiveFrom)
+                .Select(tariff => (decimal?)tariff.Amount).FirstOrDefault();
             ViewBag.HasActiveAccommodation = !string.IsNullOrWhiteSpace(userId)
                 && _repositoryWrapper.Occupancy.FindAll().Any(occupancy =>
                     occupancy.UserId == userId && (occupancy.EndDate == null || occupancy.EndDate > DateTime.UtcNow));
@@ -46,10 +60,19 @@ namespace BricksAndBooks.Controllers
             }
 
             ViewBag.ResidenceReviews = _repositoryWrapper.Review.FindAll()
-                .Where(review => review.AccommodationId == id)
+                .Where(review => review.AccommodationId == id && review.IsApproved)
                 .Include(review => review.User)
                 .OrderByDescending(review => review.CreatedAt)
                 .ToList();
+            ViewBag.MonthlyRentRate = _repositoryWrapper.Tariff.FindAll()
+                .Where(tariff => tariff.Type == TariffType.Rent && tariff.EffectiveFrom <= DateTime.UtcNow
+                    && (tariff.EffectiveTo == null || tariff.EffectiveTo >= DateTime.UtcNow))
+                .OrderByDescending(tariff => tariff.EffectiveFrom)
+                .Select(tariff => (decimal?)tariff.Amount).FirstOrDefault();
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            ViewBag.HasActiveAccommodation = !string.IsNullOrWhiteSpace(userId)
+                && _repositoryWrapper.Occupancy.FindAll().Any(occupancy =>
+                    occupancy.UserId == userId && (occupancy.EndDate == null || occupancy.EndDate > DateTime.UtcNow));
 
             return View(accommodation);
         }

@@ -1,0 +1,46 @@
+@model IEnumerable<BricksAndBooks.Models.SavedPaymentCard>
+@{
+    ViewData["Title"] = "My cards";
+    var cards = Model.ToList();
+}
+
+<div class="d-flex justify-content-between align-items-end gap-3 flex-wrap mb-4">
+    <div><span class="eyebrow">Payment settings</span><h1 class="h2 mb-1">My cards</h1><p class="text-muted mb-0">View your registered payment cards and manage the cards available for future payments.</p></div>
+    <a asp-action="Process" class="btn btn-outline-primary"><i class="fa-solid fa-arrow-left me-2"></i>Back to payment</a>
+</div>
+
+@if (TempData["StatusMessage"] != null) { <div class="alert alert-info">@TempData["StatusMessage"]</div> }
+<div class="alert alert-warning d-flex gap-3 align-items-start"><i class="fa-solid fa-shield-halved mt-1"></i><div><strong>Demo card security</strong><div>This prototype never stores a full card number or CVC. Only the cardholder name, expiry date, last four digits, and a protected demo verification value are retained.</div></div></div>
+
+@if (!cards.Any())
+{
+    <section class="card card-body empty-card-state text-center p-5 mb-4"><i class="fa-regular fa-credit-card"></i><h2 class="h5 mt-3">No registered cards</h2><p class="text-muted mb-0">Register a demo card below and it will appear here with its masked details.</p></section>
+}
+else
+{
+    <section class="mb-5"><div class="section-heading-row mb-3"><div><span class="eyebrow">Saved securely</span><h2 class="h4 mb-0">Your registered cards</h2></div><span class="small text-muted">@cards.Count card(s)</span></div><div class="row g-4">
+        @foreach (var card in cards)
+        {
+            <div class="col-md-6 col-xl-5">
+                <article class="saved-card-panel">
+                    <div class="saved-card-visual">
+                        <div class="saved-card-top"><span class="saved-card-brand">BRICKS <b>&amp;</b> BOOKS</span><i class="fa-solid fa-wifi saved-card-contactless"></i></div>
+                        <div class="saved-card-chip"><span></span><span></span><span></span><span></span></div>
+                        <div class="saved-card-number">•••• &nbsp;•••• &nbsp;•••• &nbsp;@card.LastFour</div>
+                        <div class="saved-card-bottom"><div><small>Cardholder</small><strong>@card.CardholderName</strong></div><div><small>Expires</small><strong>@card.Expiry</strong></div></div>
+                    </div>
+                    <div class="saved-card-actions"><span><i class="fa-solid fa-circle-check me-1"></i>Ready for demo payments</span><form asp-action="RemoveSavedCard" method="post">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@card.Id" /><button class="btn btn-sm btn-outline-danger" type="submit">Remove card</button></form></div>
+                </article>
+            </div>
+        }
+    </div></section>
+}
+
+<section class="card register-card-section"><div class="card-header bg-white"><strong><i class="fa-solid fa-plus me-2 text-primary"></i>Register another card</strong></div><div class="card-body"><form asp-action="RegisterDemoCard" method="post" class="row g-3">@Html.AntiForgeryToken()<div class="col-md-6"><label class="form-label">Cardholder name</label><input name="cardholderName" class="form-control" required autocomplete="cc-name" placeholder="Name shown on the card" /></div><div class="col-md-6"><label class="form-label">Demo card number</label><input name="cardNumber" class="form-control" inputmode="numeric" minlength="13" maxlength="23" required autocomplete="cc-number" placeholder="4111 1111 1111 1111" /></div><div class="col-md-4"><label class="form-label">Expiry (MM/YY)</label><input name="cardExpiry" class="form-control" placeholder="MM/YY" pattern="(0[1-9]|1[0-2])/[0-9]{2}" required autocomplete="cc-exp" /></div><div class="col-md-4"><label class="form-label">CVC</label><input name="cardCvc" class="form-control" type="password" minlength="3" maxlength="4" required autocomplete="cc-csc" /></div><div class="col-12"><button class="btn btn-primary" type="submit"><i class="fa-solid fa-credit-card me-2"></i>Register demo card</button></div></form></div></section>
+
+<style>
+.saved-card-panel{overflow:hidden;border:1px solid #dce4ed;border-radius:18px;background:#fff;box-shadow:0 12px 30px rgba(8,28,70,.1)}
+.saved-card-visual{min-height:250px;padding:25px 27px 22px;color:#fff;background:linear-gradient(125deg,#071b49 0%,#0b3970 57%,#154d83 100%);position:relative;overflow:hidden}
+.saved-card-visual:after{content:"";position:absolute;width:220px;height:220px;border:1px solid rgba(242,177,52,.38);border-radius:50%;right:-80px;top:-70px;box-shadow:0 0 0 22px rgba(242,177,52,.08),0 0 0 44px rgba(242,177,52,.05)}
+.saved-card-top,.saved-card-bottom{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:flex-start}.saved-card-brand{font-size:.72rem;font-weight:900;letter-spacing:.13em}.saved-card-brand b{color:#f2b134}.saved-card-contactless{font-size:1.2rem;transform:rotate(90deg);color:#f2b134}.saved-card-chip{position:relative;z-index:1;width:44px;height:33px;margin-top:25px;border-radius:7px;background:linear-gradient(135deg,#f5d486,#d29b32);display:grid;grid-template-columns:1fr 1fr;overflow:hidden}.saved-card-chip span{border:1px solid rgba(50,30,0,.35)}.saved-card-number{position:relative;z-index:1;margin-top:23px;font-size:1.25rem;letter-spacing:.1em;font-weight:700}.saved-card-bottom{align-items:flex-end;margin-top:22px;text-transform:uppercase}.saved-card-bottom div{display:flex;flex-direction:column;gap:3px}.saved-card-bottom small{color:#b8c7df;font-size:.53rem;letter-spacing:.12em}.saved-card-bottom strong{font-size:.74rem;letter-spacing:.08em}.saved-card-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;color:#54708e;font-size:.72rem}.saved-card-actions i{color:#218966}.empty-card-state>i{font-size:2.3rem;color:#0b3970}.section-heading-row{display:flex;align-items:end;justify-content:space-between;gap:15px}.register-card-section{max-width:850px}.register-card-section .card-body{padding:25px}.register-card-section .form-control{min-height:45px}
+</style>

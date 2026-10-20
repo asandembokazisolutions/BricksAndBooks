@@ -19,7 +19,8 @@
         </div>
         <div class="col-md-6">
             <div class="form-group">
-                <label asp-for="Amount" class="control-label"></label>
+                <label asp-for="Amount" class="control-label">Rate per unit (R)</label>
+                <div class="form-text mb-2">Water is priced per litre; electricity per kWh. Rent/parking remain monthly or per vehicle.</div>
                 <input asp-for="Amount" class="form-control" />
                 <span asp-validation-for="Amount" class="text-danger"></span>
             </div>

@@ -1,143 +1,116 @@
 @model BricksAndBooks.Models.Accommodation
+@using System.Linq
+@using System.Collections.Generic
 @{
     ViewData["Title"] = Model.Name;
-    var id = Model.Id;
+    var images = (Model.ImageUrls ?? string.Empty).Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
     var fallbackImage = Url.Content("~/images/residence-hero.jpg");
-    var images = (Model.ImageUrls ?? string.Empty)
-        .Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-        .ToList();
-    var residenceReviews = ViewBag.ResidenceReviews as IEnumerable<BricksAndBooks.Models.Review>
-        ?? Enumerable.Empty<BricksAndBooks.Models.Review>();
-    var reviewList = residenceReviews.ToList();
-    var averageRating = reviewList.Any() ? reviewList.Average(review => review.Rating) : 0;
+    var reviews = (ViewBag.ResidenceReviews as IEnumerable<BricksAndBooks.Models.Review> ?? Enumerable.Empty<BricksAndBooks.Models.Review>()).ToList();
+    var averageRating = reviews.Any() ? reviews.Average(review => review.Rating) : 0;
+    var availableUnits = Model.Units.Count(unit => unit.IsAvailable);
+    decimal? rentRate = ViewBag.MonthlyRentRate as decimal?;
+    var unitImages = images.Skip(1).Take(4).ToList();
 }
-
-<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
-    <div>
-        <span class="eyebrow">Bricks &amp; Books residence</span>
-        <h1 class="mt-2 mb-1">@Model.Name</h1>
-        <p class="text-muted mb-0"><i class="fa-solid fa-location-dot me-1"></i>@Model.Address</p>
+<nav class="property-breadcrumb" aria-label="Breadcrumb"><a asp-action="Index"><i class="fa-solid fa-arrow-left"></i> All residences</a><span>/</span><span>@Model.Name</span></nav>
+<header class="property-heading">
+    <div class="property-heading-copy"><span class="property-eyebrow"><i class="fa-solid fa-house"></i> BRICKS &amp; BOOKS RESIDENCE</span><h1>@Model.Name</h1><p class="property-address"><i class="fa-solid fa-location-dot"></i>@Model.Address</p>
+        <div class="property-summary">
+            @if (reviews.Any()) { <span class="summary-rating"><b>@averageRating.ToString("0.0")</b><i class="fa-solid fa-star"></i> <span>@reviews.Count review@(reviews.Count == 1 ? "" : "s")</span></span> }
+            else { <span class="summary-rating no-rating">No approved reviews yet</span> }
+            <span class="summary-separator">·</span><span><i class="fa-solid fa-bed"></i> @Model.Units.Count room@(Model.Units.Count == 1 ? "" : "s")</span>
+            <span class="summary-separator">·</span><span><i class="fa-solid fa-door-open"></i> @availableUnits available now</span>
+        </div>
     </div>
-    <div class="d-flex gap-2">
-        @if (User.IsInRole("Admin"))
-        {
-            <a asp-action="Edit" asp-route-id="@id" class="btn btn-outline-primary"><i class="fa-solid fa-pen-to-square me-2"></i>Edit residence</a>
-        }
-        <a asp-action="Index" class="btn btn-light"><i class="fa-solid fa-arrow-left me-2"></i>All residences</a>
+    <div class="property-heading-actions">
+        @if (User.IsInRole("Admin")) { <a asp-action="Edit" asp-route-id="@Model.Id" class="property-outline-button"><i class="fa-solid fa-pen-to-square"></i> Edit listing</a> }
     </div>
-</div>
-
-<div class="row g-4">
-    <div class="col-lg-8">
-        <div class="accommodation-gallery mb-4">
-            @if (images.Any())
+</header>
+<section class="property-gallery" aria-label="Residence photos">
+    <a class="gallery-main" href="@(images.Any() ? Url.Content(images[0]) : fallbackImage)" target="_blank" rel="noopener"><img src="@(images.Any() ? Url.Content(images[0]) : fallbackImage)" alt="Main residence photo for @Model.Name" onerror="this.onerror=null;this.src='@fallbackImage';" /><span class="gallery-caption"><i class="fa-regular fa-images"></i> Residence gallery</span></a>
+    @if (unitImages.Any())
+    {
+        <div class="gallery-side">
+            @for (var index = 0; index < unitImages.Count; index++)
             {
-                @foreach (var imageUrl in images)
-                {
-                    <img src="@Url.Content(imageUrl)" alt="Residence photo for @Model.Name" loading="lazy" onerror="this.onerror=null;this.src='@fallbackImage';" />
-                }
+                var photo = unitImages[index];
+                <a href="@Url.Content(photo)" target="_blank" rel="noopener" class="gallery-tile">
+                    <img src="@Url.Content(photo)" alt="Residence photo @(index + 2) for @Model.Name" loading="lazy" onerror="this.onerror=null;this.src='@fallbackImage';" />
+                    @if (index == unitImages.Count - 1 && images.Count > 5)
+                    {
+                        <span class="gallery-more">+@(images.Count - 5) more</span>
+                    }
+                </a>
             }
-            else
+            @for (var emptyTile = unitImages.Count; emptyTile < 4; emptyTile++)
             {
-                <img src="@fallbackImage" alt="Residence image placeholder for @Model.Name" loading="lazy" />
+                <div class="gallery-placeholder"><i class="fa-solid fa-house-chimney-window"></i><span>Residence</span></div>
             }
         </div>
-
-        <section class="card shadow-sm border-0 mb-4">
-            <div class="card-body p-4">
-                <h2 class="h4 mb-3">About this residence</h2>
-                <p class="text-muted mb-0" style="white-space: pre-line;">@(string.IsNullOrWhiteSpace(Model.Description) ? "Accommodation details will be updated by the Bricks & Books residence team." : Model.Description)</p>
-            </div>
+    }
+    else
+    {
+        <div class="gallery-side gallery-empty-side"><div class="gallery-placeholder"><i class="fa-solid fa-house-chimney-window"></i><span>Residence</span></div><div class="gallery-placeholder"><i class="fa-solid fa-bed"></i><span>Rooms</span></div><div class="gallery-placeholder"><i class="fa-solid fa-tree-city"></i><span>Community</span></div><div class="gallery-placeholder"><i class="fa-solid fa-sun"></i><span>Your new view</span></div></div>
+    }
+</section>
+<div class="property-content-grid">
+    <main class="property-main-column">
+        <section class="property-section about-section"><div class="section-title-row"><div><span class="section-eyebrow">THE RESIDENCE</span><h2>A little about this place</h2></div><span class="managed-stamp"><i class="fa-solid fa-shield-heart"></i> Bricks &amp; Books residence</span></div><p class="about-copy">@(string.IsNullOrWhiteSpace(Model.Description) ? "Residence information will be updated by the Bricks & Books team. Contact the residence office for current details about the community, facilities and services." : Model.Description)</p>
+            <div class="property-facts"><div><span class="fact-icon"><i class="fa-solid fa-door-open"></i></span><span><small>ROOMS / UNITS</small><strong>@Model.Units.Count</strong></span></div><div><span class="fact-icon"><i class="fa-solid fa-circle-check"></i></span><span><small>AVAILABLE NOW</small><strong>@availableUnits</strong></span></div><div><span class="fact-icon"><i class="fa-solid fa-people-group"></i></span><span><small>ROOM OPTIONS</small><strong>Single &amp; shared</strong></span></div></div>
         </section>
-
-        <section class="card shadow-sm border-0">
-            <div class="card-header bg-white d-flex flex-wrap align-items-center justify-content-between gap-2">
-                <div>
-                    <strong>Resident feedback</strong>
-                    <span class="text-muted small ms-2">@reviewList.Count review@(reviewList.Count == 1 ? string.Empty : "s")</span>
-                </div>
-                @if (reviewList.Any())
-                {
-                    <span class="badge text-bg-light border text-dark"><i class="fa-solid fa-star text-warning me-1"></i>@averageRating.ToString("0.0") / 5</span>
-                }
-            </div>
-            <div class="card-body p-4">
-                @if (reviewList.Any())
-                {
-                    <div class="d-grid gap-4">
-                        @foreach (var review in reviewList)
-                        {
-                            var reviewerName = string.IsNullOrWhiteSpace(review.User?.FirstName)
-                                ? "Verified residence user"
-                                : $"{review.User.FirstName} {(string.IsNullOrWhiteSpace(review.User.LastName) ? string.Empty : review.User.LastName.Substring(0, 1) + ".")}";
-                            <article class="border-bottom pb-4 last-review">
-                                <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
-                                    <div><strong>@review.Title</strong><div class="small text-muted mt-1">@reviewerName</div></div>
-                                    <div class="review-stars" aria-label="@review.Rating out of 5 stars">
-                                        @for (var star = 1; star <= 5; star++)
-                                        {
-                                            <i class="fa-solid fa-star @(star <= review.Rating ? "text-warning" : "text-muted")"></i>
-                                        }
-                                    </div>
-                                </div>
-                                <p class="text-muted mb-2" style="white-space: pre-line;">@review.Comment</p>
-                                <div class="small text-muted">Posted @review.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")</div>
-                            </article>
-                        }
-                    </div>
-                }
-                else
-                {
-                    <p class="text-muted mb-0">No resident feedback has been posted for this residence yet.</p>
-                }
-            </div>
-        </section>
-    </div>
-
-    <div class="col-lg-4">
-        <div class="card shadow-sm border-0 mb-4">
-            <div class="card-header bg-white"><strong>Residence overview</strong></div>
-            <div class="card-body">
-                <div class="small text-muted mb-1">Managed units</div>
-                <div class="fs-3 fw-semibold mb-3">@Model.Units.Count</div>
-                <div class="small text-muted mb-1">Available units</div>
-                <div class="fs-3 fw-semibold">@Model.Units.Count(unit => unit.IsAvailable)</div>
-            </div>
-        </div>
-
-        @if (User.IsInRole("Student") || User.IsInRole("Staff"))
-        {
-            <div class="card shadow-sm border-0 mb-4">
-                <div class="card-body">
-                    <h2 class="h5">Stayed here?</h2>
-                    <p class="text-muted small">Share a rating and review. Your feedback is posted directly to this residence page.</p>
-                    <a asp-controller="Review" asp-action="Create" class="btn btn-outline-primary w-100">Post feedback</a>
-                </div>
-            </div>
-        }
-
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-white"><strong>Units</strong></div>
-            <div class="list-group list-group-flush">
-                @if (Model.Units.Any())
-                {
+        <section class="property-section rooms-section"><div class="section-title-row"><div><span class="section-eyebrow">FIND YOUR ROOM</span><h2>Room availability</h2><p>Choose a room option and check its current status.</p></div><span class="room-count-badge">@availableUnits available</span></div>
+            @if (Model.Units.Any())
+            {
+                <div class="room-list">
                     @foreach (var unit in Model.Units.OrderBy(unit => unit.UnitNumber))
                     {
-                        <div class="list-group-item d-flex align-items-center justify-content-between gap-2">
-                            <div><strong>Unit @unit.UnitNumber</strong><div class="small text-muted">@unit.OccupancyType · Capacity @unit.Capacity</div></div>
-                            <span class="badge @(unit.IsAvailable ? "bg-success" : "bg-light border text-dark")">@(unit.IsAvailable ? "Available" : "Occupied")</span>
-                        </div>
+                        <article class="room-option"><span class="room-icon"><i class="fa-solid @(unit.OccupancyType == BricksAndBooks.Models.UnitOccupancyType.Shared ? "fa-people-roof" : "fa-bed")"></i></span><div class="room-info"><strong>@(unit.OccupancyType == BricksAndBooks.Models.UnitOccupancyType.Shared ? "Shared room" : "Single room") <span>· Unit @unit.UnitNumber</span></strong><small>Capacity: @unit.Capacity @(unit.Capacity == 1 ? "resident" : "residents")</small></div><span class="room-status @(unit.IsAvailable ? "open" : "occupied")"><i class="fa-solid @(unit.IsAvailable ? "fa-circle-check" : "fa-circle-minus")"></i> @(unit.IsAvailable ? "Available" : "Occupied")</span></article>
                     }
+                </div>
+            }
+            else { <div class="room-empty"><i class="fa-solid fa-door-closed"></i><span>Room information is not available yet.</span></div> }
+        </section>
+        <section class="property-section reviews-section"><div class="section-title-row"><div><span class="section-eyebrow">RESIDENT VOICES</span><h2>Reviews &amp; ratings</h2><p>Feedback published for this residence.</p></div>@if (reviews.Any()) { <div class="review-summary"><strong>@averageRating.ToString("0.0")</strong><span><i class="fa-solid fa-star"></i> average<br /><small>@reviews.Count approved review@(reviews.Count == 1 ? "" : "s")</small></span></div> }</div>
+            @if (reviews.Any())
+            {
+                <div class="review-list">
+                    @foreach (var review in reviews)
+                    {
+                        var reviewerName = string.IsNullOrWhiteSpace(review.User?.FirstName) ? "Residence resident" : $"{review.User.FirstName} {(string.IsNullOrWhiteSpace(review.User.LastName) ? string.Empty : review.User.LastName.Substring(0, 1) + ".")}";
+                        <article class="review-card"><div class="review-top"><div><strong>@review.Title</strong><span>@reviewerName · @review.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")</span></div><span class="review-score"><i class="fa-solid fa-star"></i> @review.Rating / 5</span></div><p>@review.Comment</p></article>
+                    }
+                </div>
+            }
+            else { <div class="no-reviews"><span><i class="fa-regular fa-comment-dots"></i></span><div><strong>Be the first to share your experience</strong><p>There are no approved reviews for this residence yet.</p></div></div> }
+            @if (User.IsInRole("Student") || User.IsInRole("Staff")) { <a asp-controller="Review" asp-action="Create" class="review-cta"><i class="fa-regular fa-star"></i> Write a review</a> }
+        </section>
+    </main>
+    <aside class="property-booking-column">
+        <section class="availability-card"><span class="availability-card-eyebrow">YOUR RESIDENCE SNAPSHOT</span><h2>Ready to find your place?</h2><p>Check availability and apply through the residence portal.</p><div class="snapshot-availability"><span class="snapshot-dot @(availableUnits > 0 ? "is-open" : "is-closed")"></span><div><strong>@(availableUnits > 0 ? $"{availableUnits} rooms currently available" : "No rooms currently available")</strong><small>@Model.Units.Count total room@(Model.Units.Count == 1 ? "" : "s") listed</small></div></div>
+            <div class="snapshot-price">
+                @if (rentRate.HasValue)
+                {
+                    <span>MONTHLY RENT FROM</span>
+                    <strong>@rentRate.Value.ToString("C")</strong>
+                    <small>per month · utilities may be separate</small>
                 }
                 else
                 {
-                    <div class="list-group-item text-muted">Unit information is not available yet.</div>
+                    <span>MONTHLY RENT</span>
+                    <strong class="contact-rate">Contact residence office</strong>
+                    <small>Rates are not listed online</small>
                 }
             </div>
-            @if (User.IsInRole("Admin"))
+            @if ((User.IsInRole("Student") || User.IsInRole("Staff")) && !(ViewBag.HasActiveAccommodation ?? false))
             {
-                <div class="card-footer bg-white"><a asp-controller="Unit" asp-action="Create" asp-route-accommodationId="@id" class="btn btn-sm btn-primary">Add unit</a></div>
+                if (availableUnits > 0) { <a asp-controller="AccommodationApplication" asp-action="Apply" class="apply-button">Apply for accommodation <i class="fa-solid fa-arrow-right"></i></a> }
+                else { <button class="apply-button disabled" type="button" disabled>Currently full</button> }
             }
-        </div>
-    </div>
+            else if (!User.Identity?.IsAuthenticated ?? true) { <a asp-controller="Account" asp-action="Login" class="apply-button">Sign in to apply <i class="fa-solid fa-arrow-right"></i></a> }
+            <div class="assistance-note"><i class="fa-solid fa-circle-info"></i><span>Questions about this residence? Contact the Bricks &amp; Books residence team.</span></div>
+        </section>
+        @if (User.IsInRole("Admin")) { <a asp-controller="Unit" asp-action="Create" asp-route-accommodationId="@Model.Id" class="admin-add-room"><i class="fa-solid fa-plus"></i> Add a room / unit</a> }
+    </aside>
 </div>
+<style>
+.property-breadcrumb{display:flex;align-items:center;gap:11px;margin:3px 0 18px;color:#95a2a7;font-size:.72rem}.property-breadcrumb a{display:inline-flex;align-items:center;gap:7px;color:#246e7e;text-decoration:none;font-weight:700}.property-breadcrumb a:hover{text-decoration:underline}.property-heading{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;margin-bottom:19px}.property-eyebrow{display:flex;align-items:center;gap:7px;color:#117e7a;font-size:.62rem;font-weight:850;letter-spacing:.13em}.property-heading h1{margin:7px 0 5px;color:#15394c;font-size:clamp(1.8rem,3vw,2.5rem);font-weight:800;letter-spacing:-.04em}.property-address{display:flex;align-items:center;gap:7px;margin:0;color:#496b79;font-size:.83rem}.property-address i{color:#11837d}.property-summary{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:12px;color:#536b75;font-size:.73rem}.property-summary>span:not(.summary-separator){display:inline-flex;align-items:center;gap:6px}.property-summary i{color:#138279}.summary-rating{padding:5px 8px;border:1px solid #e5ecec;border-radius:7px;background:#fff}.summary-rating b{color:#153e50}.summary-rating>i{color:#e9ab35}.summary-rating.no-rating{color:#75858a}.summary-separator{color:#bcc6c9}.property-heading-actions{display:flex;gap:8px}.property-outline-button{display:inline-flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid #d5e2e6;border-radius:8px;background:#fff;color:#1c5d6d;text-decoration:none;font-size:.75rem;font-weight:700}.property-gallery{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(260px,1fr);gap:9px;height:clamp(300px,38vw,440px);overflow:hidden;border-radius:18px;background:#e7efef}.gallery-main,.gallery-tile{position:relative;display:block;min-width:0;min-height:0;overflow:hidden;background:#e7efef}.gallery-main img,.gallery-tile img{width:100%;height:100%;object-fit:cover;transition:transform .4s}.gallery-main:hover img,.gallery-tile:hover img{transform:scale(1.025)}.gallery-main:after{position:absolute;inset:50% 0 0;content:"";background:linear-gradient(transparent,#081c2370)}.gallery-caption{position:absolute;z-index:1;left:17px;bottom:16px;display:flex;align-items:center;gap:8px;padding:8px 11px;border:1px solid #ffffff80;border-radius:9px;background:#ffffffed;color:#234454;font-size:.71rem;font-weight:750}.gallery-side{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:9px;min-width:0;min-height:0}.gallery-tile img{position:absolute;inset:0}.gallery-tile:hover{filter:brightness(.96)}.gallery-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:linear-gradient(145deg,#eaf3f2,#dfeceb);color:#62827f;font-size:.66rem;font-weight:700}.gallery-placeholder i{font-size:1.1rem;color:#7ba49e}.gallery-more{position:absolute;inset:0;display:grid;place-items:center;background:#092a36bd;color:#fff;font-size:1.05rem;font-weight:800}.property-content-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(270px,340px);align-items:start;gap:22px;margin-top:22px}.property-main-column{display:grid;gap:16px;min-width:0}.property-section{padding:24px;border:1px solid #e0e8ea;border-radius:15px;background:#fff;box-shadow:0 4px 16px #15384908}.section-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:15px;margin-bottom:18px}.section-eyebrow{color:#137f79;font-size:.59rem;font-weight:850;letter-spacing:.14em}.section-title-row h2{margin:5px 0 4px;color:#183c4e;font-size:1.22rem;font-weight:790;letter-spacing:-.025em}.section-title-row p{margin:0;color:#73848a;font-size:.76rem}.managed-stamp{display:inline-flex;align-items:center;gap:7px;padding:7px 9px;border-radius:8px;background:#f0f7f5;color:#39766c;font-size:.66rem;font-weight:700}.about-copy{max-width:850px;margin:0;color:#4e6570;font-size:.87rem;line-height:1.8;white-space:pre-line}.property-facts{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:22px;padding-top:18px;border-top:1px solid #eaf0f1}.property-facts>div{display:flex;align-items:center;gap:10px}.fact-icon{display:grid;place-items:center;width:37px;height:37px;flex:0 0 37px;border-radius:11px;background:#eff7f5;color:#167c77}.property-facts>div>span:last-child{display:grid;gap:2px}.property-facts small{color:#829095;font-size:.54rem;font-weight:800;letter-spacing:.09em}.property-facts strong{color:#294957;font-size:.78rem}.room-count-badge{padding:7px 9px;border-radius:8px;background:#eef7f2;color:#277750;font-size:.68rem;font-weight:750;white-space:nowrap}.room-list{display:grid;gap:9px}.room-option{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid #e6edef;border-radius:11px;background:#fcfdfd}.room-icon{display:grid;place-items:center;width:41px;height:41px;flex:0 0 41px;border-radius:11px;background:#edf5f5;color:#287680}.room-info{display:grid;gap:4px;min-width:0}.room-info>strong{color:#254553;font-size:.78rem}.room-info>strong span{color:#859398;font-weight:500}.room-info small{color:#76858a;font-size:.66rem}.room-status{display:inline-flex;align-items:center;gap:5px;margin-left:auto;font-size:.68rem;font-weight:750;white-space:nowrap}.room-status.open{color:#287650}.room-status.occupied{color:#7a8589}.room-status.open i{color:#39a26d}.room-status.occupied i{color:#9aa4a8}.room-empty{display:flex;align-items:center;gap:9px;padding:15px;border-radius:9px;background:#f6f8f8;color:#6e8086;font-size:.78rem}.review-summary{display:flex;align-items:center;gap:9px;padding:8px 10px;border:1px solid #e4ebed;border-radius:10px}.review-summary>strong{color:#17495c;font-size:1.25rem}.review-summary>span{color:#63777f;font-size:.63rem;line-height:1.4}.review-summary i{color:#e9ad3a}.review-summary small{color:#829096}.review-list{display:grid;gap:10px}.review-card{padding:14px;border:1px solid #e6edef;border-radius:11px;background:#fff}.review-top{display:flex;justify-content:space-between;gap:10px}.review-top>div{display:grid;gap:4px}.review-top>div strong{color:#2a4a59;font-size:.8rem}.review-top>div span{color:#829095;font-size:.64rem}.review-score{align-self:flex-start;padding:5px 7px;border-radius:7px;background:#f8f4e9;color:#876b2f;font-size:.65rem;font-weight:750;white-space:nowrap}.review-score i{color:#e3aa34}.review-card p{margin:10px 0 0;color:#5a6e77;font-size:.76rem;line-height:1.65;white-space:pre-line}.no-reviews{display:flex;align-items:center;gap:12px;padding:14px;border:1px dashed #d9e4e7;border-radius:10px;background:#fbfcfc}.no-reviews>span{display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:#eef5f4;color:#32817a}.no-reviews strong{color:#355563;font-size:.77rem}.no-reviews p{margin:3px 0 0;color:#809096;font-size:.68rem}.review-cta{display:inline-flex;align-items:center;gap:7px;margin-top:13px;color:#16777d;text-decoration:none;font-size:.72rem;font-weight:750}.review-cta:hover{text-decoration:underline}.property-booking-column{position:sticky;top:20px;display:grid;gap:12px}.availability-card{padding:20px;border:1px solid #d9e6e7;border-radius:15px;background:linear-gradient(150deg,#f2f9f7,#fff 56%);box-shadow:0 8px 24px #12394b0a}.availability-card-eyebrow{color:#13827d;font-size:.58rem;font-weight:850;letter-spacing:.13em}.availability-card h2{margin:7px 0 5px;color:#153b4d;font-size:1.15rem;font-weight:780;letter-spacing:-.025em}.availability-card>p{margin:0;color:#6d8188;font-size:.74rem;line-height:1.55}.snapshot-availability{display:flex;align-items:center;gap:10px;margin:17px 0 15px;padding:12px;border:1px solid #e2ebea;border-radius:10px;background:#fff}.snapshot-dot{width:10px;height:10px;flex:0 0 10px;border-radius:50%}.snapshot-dot.is-open{background:#35a46f;box-shadow:0 0 0 4px #35a46f1d}.snapshot-dot.is-closed{background:#9aa6a9;box-shadow:0 0 0 4px #9aa6a91c}.snapshot-availability>div{display:grid;gap:3px}.snapshot-availability strong{color:#294b57;font-size:.73rem}.snapshot-availability small{color:#819095;font-size:.63rem}.snapshot-price{display:grid;gap:3px;padding:14px 0;border-top:1px solid #e4eceb}.snapshot-price>span{color:#7b8a8d;font-size:.57rem;font-weight:850;letter-spacing:.1em}.snapshot-price>strong{color:#153e51;font-size:1.55rem;line-height:1.2;letter-spacing:-.04em}.snapshot-price>strong.contact-rate{font-size:.91rem;letter-spacing:0}.snapshot-price>small{color:#818f92;font-size:.63rem}.apply-button{display:flex;align-items:center;justify-content:space-between;gap:9px;padding:12px 13px;border:0;border-radius:9px;background:#0c7180;color:#fff;text-decoration:none;font-size:.76rem;font-weight:750}.apply-button:hover{background:#095c68;color:#fff}.apply-button.disabled{background:#d8e0e2;color:#718084;cursor:not-allowed}.assistance-note{display:flex;align-items:flex-start;gap:8px;margin-top:13px;color:#78898e;font-size:.64rem;line-height:1.5}.assistance-note i{margin-top:2px;color:#1d857c}.admin-add-room{display:flex;align-items:center;justify-content:center;gap:8px;padding:11px;border:1px solid #cfdfdf;border-radius:9px;background:#fff;color:#246b74;text-decoration:none;font-size:.74rem;font-weight:700}.admin-add-room:hover{background:#f4faf9}@@media(max-width:950px){.property-content-grid{grid-template-columns:minmax(0,1fr) 285px;gap:15px}.property-section{padding:20px}.property-gallery{height:340px}}@@media(max-width:760px){.property-content-grid{grid-template-columns:1fr}.property-booking-column{position:static;grid-row:1}.property-gallery{grid-template-columns:1fr;height:310px}.gallery-side{display:none}.property-heading{align-items:flex-start}.availability-card{padding:17px}.snapshot-price{grid-template-columns:1fr auto;align-items:center}.snapshot-price>span,.snapshot-price>small{grid-column:1}.snapshot-price>strong{grid-column:2;grid-row:1/4}.property-facts{gap:7px}.property-facts>div{gap:7px}}@@media(max-width:520px){.property-heading{flex-direction:column}.property-heading-actions{width:100%}.property-outline-button{width:100%;justify-content:center}.property-gallery{height:250px;border-radius:13px}.property-section{padding:17px}.section-title-row{gap:8px}.managed-stamp{font-size:.58rem;padding:6px}.property-facts{grid-template-columns:1fr;gap:12px}.property-facts>div{min-height:36px}.room-option{gap:8px;padding:10px}.room-icon{width:35px;height:35px;flex-basis:35px}.room-info>strong{font-size:.71rem}.room-status{font-size:.62rem}}
+</style>

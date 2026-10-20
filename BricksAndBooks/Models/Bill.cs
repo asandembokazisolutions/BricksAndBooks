@@ -52,34 +52,11 @@ namespace BricksAndBooks.Models
 
         public BillStatus Status { get; set; } = BillStatus.Pending;
 
-        // The final day of the monthly payment window. Payment is due by this date.
+        // The billing date is retained for statement history; payment can be made at any time.
         public DateTime DueDate { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-
-        /// <summary>
-        /// The payment window opens on the 30th of the preceding month and closes on the first day of this bill's month.
-        /// For shorter months, it opens on that previous month's final available day.
-        /// </summary>
-        [NotMapped]
-        public DateTime PaymentWindowStart
-        {
-            get
-            {
-                var previousMonth = new DateTime(Year, Month, 1).AddMonths(-1);
-                var startDay = Math.Min(30, DateTime.DaysInMonth(previousMonth.Year, previousMonth.Month));
-                return new DateTime(previousMonth.Year, previousMonth.Month, startDay);
-            }
-        }
-
-        /// <summary>
-        /// A bill is overdue from the second day of its bill month when it has not been paid or cancelled.
-        /// </summary>
-        [NotMapped]
-        public bool IsOverdue => Status != BillStatus.Paid
-            && Status != BillStatus.Cancelled
-            && DateTime.UtcNow.Date > DueDate.Date;
 
         // Navigation properties
         public ICollection<Payment> Payments { get; set; } = new List<Payment>();

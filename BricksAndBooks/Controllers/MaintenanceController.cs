@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using BricksAndBooks.Data;
 using BricksAndBooks.Models;
 using BricksAndBooks.Infrastructure;
+using BricksAndBooks.Models.ViewModels;
 
 namespace BricksAndBooks.Controllers
 {
@@ -52,7 +53,11 @@ namespace BricksAndBooks.Controllers
                 .Include(request => request.Unit)
                 .Include(request => request.AssignedToUser);
 
-            if (!User.IsInRole("Admin") && !User.IsInRole("FinancialOfficer"))
+            if (User.IsInRole("MaintenanceWorker"))
+            {
+                maintenanceRequests = maintenanceRequests.Where(request => request.AssignedToUserId == user.Id);
+            }
+            else if (!User.IsInRole("Admin") && !User.IsInRole("FinancialOfficer"))
             {
                 maintenanceRequests = maintenanceRequests.Where(request => request.UserId == user.Id);
             }
@@ -69,7 +74,9 @@ namespace BricksAndBooks.Controllers
             {
                 return NotFound();
             }
-            if (user == null || (!User.IsInRole("Admin") && !User.IsInRole("FinancialOfficer") && maintenanceRequest.UserId != user.Id))
+            if (user == null || (!User.IsInRole("Admin") && !User.IsInRole("FinancialOfficer")
+                && !(User.IsInRole("MaintenanceWorker") && maintenanceRequest.AssignedToUserId == user.Id)
+                && maintenanceRequest.UserId != user.Id))
             {
                 return Forbid();
             }
@@ -164,7 +171,7 @@ namespace BricksAndBooks.Controllers
         }
 
         // GET: Maintenance/Edit/5
-        [Authorize(Roles = "Admin,FinancialOfficer")]
+        [Authorize(Roles = "Admin,FinancialOfficer,MaintenanceWorker")]
         public async Task<IActionResult> Edit(int id)
         {
             var maintenanceRequest = await GetMaintenanceRequestAsync(id);
@@ -173,13 +180,16 @@ namespace BricksAndBooks.Controllers
                 return NotFound();
             }
 
+            var isAssignedWorker = User.IsInRole("MaintenanceWorker");
+            if (isAssignedWorker && maintenanceRequest.AssignedToUserId != _userManager.GetUserId(User)) return Forbid();
+            ViewBag.IsAssignedWorker = isAssignedWorker;
             await PopulateEditFormAsync(maintenanceRequest);
             return View(maintenanceRequest);
         }
 
         // POST: Maintenance/Edit/5
         [HttpPost]
-        [Authorize(Roles = "Admin,FinancialOfficer")]
+        [Authorize(Roles = "Admin,FinancialOfficer,MaintenanceWorker")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, MaintenanceStatus status, string? assignedToUserId, List<IFormFile>? attachments)
         {
@@ -189,9 +199,12 @@ namespace BricksAndBooks.Controllers
                 return NotFound();
             }
 
-            if (!string.IsNullOrWhiteSpace(assignedToUserId) && !await IsAssignableUserAsync(assignedToUserId))
+            var isAssignedWorker = User.IsInRole("MaintenanceWorker");
+            if (isAssignedWorker && maintenanceRequest.AssignedToUserId != _userManager.GetUserId(User)) return Forbid();
+            if (isAssignedWorker) assignedToUserId = maintenanceRequest.AssignedToUserId;
+            if (!isAssignedWorker && !string.IsNullOrWhiteSpace(assignedToUserId) && !await IsAssignableUserAsync(assignedToUserId, maintenanceRequest.Category))
             {
-                ModelState.AddModelError(nameof(assignedToUserId), "Choose a valid administrator or financial officer to assign this request.");
+                ModelState.AddModelError(nameof(assignedToUserId), "Choose a valid maintenance worker, administrator, or financial officer to assign this request.");
             }
             ValidateAttachments(attachments);
 
@@ -199,6 +212,7 @@ namespace BricksAndBooks.Controllers
             {
                 maintenanceRequest.Status = status;
                 maintenanceRequest.AssignedToUserId = assignedToUserId;
+                ViewBag.IsAssignedWorker = isAssignedWorker;
                 await PopulateEditFormAsync(maintenanceRequest);
                 return View(maintenanceRequest);
             }
@@ -254,6 +268,51 @@ namespace BricksAndBooks.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        [HttpPost]
+        [Authorize(Roles = "Admin,FinancialOfficer")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateSpecialist(int id, [Bind(Prefix = "Worker")] MaintenanceWorkerCreateViewModel worker)
+        {
+            var request = await GetMaintenanceRequestAsync(id);
+            if (request == null) return NotFound();
+            if (worker.Specialty != request.Category)
+                ModelState.AddModelError("Worker.Specialty", $"Choose the {request.Category} specialty for this request.");
+            if (!ModelState.IsValid)
+            {
+                ViewBag.IsAssignedWorker = false;
+                await PopulateEditFormAsync(request);
+                ViewBag.WorkerErrors = ModelState.Where(pair => pair.Key.StartsWith("Worker") && pair.Value?.Errors.Count > 0)
+                    .SelectMany(pair => pair.Value!.Errors).Select(error => error.ErrorMessage).ToList();
+                return View("Edit", request);
+            }
+            var email = worker.Email.Trim().ToLowerInvariant();
+            var specialist = new ApplicationUser
+            {
+                UserName = email, Email = email, FirstName = worker.FirstName.Trim(), LastName = worker.LastName.Trim(),
+                IsMaintenanceWorker = true, MaintenanceSpecialty = worker.Specialty, EmailConfirmed = true
+            };
+            var created = await _userManager.CreateAsync(specialist, worker.Password);
+            if (created.Succeeded) created = await _userManager.AddToRoleAsync(specialist, "MaintenanceWorker");
+            if (!created.Succeeded)
+            {
+                foreach (var error in created.Errors) ModelState.AddModelError("Worker.Password", error.Description);
+                ViewBag.IsAssignedWorker = false;
+                await PopulateEditFormAsync(request);
+                ViewBag.WorkerErrors = ModelState.Where(pair => pair.Key.StartsWith("Worker") && pair.Value?.Errors.Count > 0)
+                    .SelectMany(pair => pair.Value!.Errors).Select(error => error.ErrorMessage).ToList();
+                return View("Edit", request);
+            }
+            request.AssignedToUserId = specialist.Id;
+            request.AssignedAt = DateTime.UtcNow;
+            request.Status = MaintenanceStatus.Assigned;
+            request.UpdatedAt = DateTime.UtcNow;
+            _repositoryWrapper.MaintenanceRequest.Update(request);
+            _repositoryWrapper.Save();
+            _auditService.Record(User, "Create and assign", "MaintenanceWorker", request.Id, $"Created {worker.Specialty} specialist {specialist.Email} and assigned to request #{request.Id}.");
+            _notificationService.CreateMaintenanceUpdateNotification(request.UserId, request.Id, $"Assigned to {specialist.FirstName} {specialist.LastName} ({worker.Specialty} specialist)");
+            TempData["StatusMessage"] = $"{specialist.FirstName} {specialist.LastName} was created as a {worker.Specialty} specialist and assigned to request #{request.Id}.";
+            return RedirectToAction(nameof(Edit), new { id });
+        }
         // GET: Maintenance/Delete/5
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int id)
@@ -324,8 +383,9 @@ namespace BricksAndBooks.Controllers
                 ? $"Unit #{maintenanceRequest.UnitId}"
                 : $"Unit {unit.UnitNumber}" + (string.IsNullOrWhiteSpace(unit.Accommodation?.Name) ? string.Empty : $" — {unit.Accommodation.Name}");
 
+            // Only workers whose trade matches this request may be assigned.
             var assignees = await _userManager.Users
-                .Where(user => user.IsAdmin || user.IsFinancialOfficer)
+                .Where(user => user.IsMaintenanceWorker && user.MaintenanceSpecialty == maintenanceRequest.Category)
                 .OrderBy(user => user.FirstName)
                 .ThenBy(user => user.LastName)
                 .ToListAsync();
@@ -337,16 +397,17 @@ namespace BricksAndBooks.Controllers
             assigneeOptions.AddRange(assignees.Select(user => new SelectListItem
             {
                 Value = user.Id,
-                Text = $"{user.FirstName} {user.LastName} ({user.Email ?? user.UserName})",
+                Text = $"{user.FirstName} {user.LastName} — {user.MaintenanceSpecialty} specialist",
                 Selected = user.Id == maintenanceRequest.AssignedToUserId
             }));
             ViewBag.Assignees = assigneeOptions;
+            ViewBag.AssigneeCount = assignees.Count;
         }
 
-        private async Task<bool> IsAssignableUserAsync(string userId)
+        private async Task<bool> IsAssignableUserAsync(string userId, MaintenanceCategory requestCategory)
         {
             var user = await _userManager.FindByIdAsync(userId);
-            return user != null && (user.IsAdmin || user.IsFinancialOfficer);
+            return user != null && user.IsMaintenanceWorker && user.MaintenanceSpecialty == requestCategory;
         }
 
         private void ValidateAttachments(IEnumerable<IFormFile>? attachments)

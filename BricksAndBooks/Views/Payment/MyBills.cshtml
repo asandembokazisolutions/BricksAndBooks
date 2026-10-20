@@ -22,7 +22,7 @@
 <div class="row g-3 mb-4">
     <div class="col-sm-6 col-lg-4"><div class="card finance-summary-card"><span class="stat-label">Outstanding balance</span><strong>@outstandingTotal.ToString("C")</strong><small>Across @outstandingBills open bill(s)</small></div></div>
     <div class="col-sm-6 col-lg-4"><div class="card finance-summary-card"><span class="stat-label">Payment status</span><strong>@(outstandingBills == 0 ? "Up to date" : "Action required")</strong><small>Payments are verified by finance</small></div></div>
-    <div class="col-sm-6 col-lg-4"><div class="card finance-summary-card"><span class="stat-label">Payment window</span><strong>30th–1st</strong><small>Previous month through billing month</small></div></div>
+    <div class="col-sm-6 col-lg-4"><div class="card finance-summary-card"><span class="stat-label">Flexible payments</span><strong>Any time</strong><small>Pay available charges whenever you are ready</small></div></div>
 </div>
 
 <div class="alert alert-light border d-flex align-items-start gap-3 mb-4" role="note">
@@ -34,7 +34,7 @@
     <div class="card-header command-panel-heading"><div><span class="eyebrow">Account statement</span><h3>Residence charges</h3></div><span class="small text-muted">@bills.Count bill(s)</span></div>
     <div class="table-responsive">
         <table class="table align-middle mb-0">
-            <thead><tr><th class="ps-3">Period</th><th>Charges</th><th>Total</th><th>Deadline</th><th>Status</th><th class="text-end pe-3">Action</th></tr></thead>
+            <thead><tr><th class="ps-3">Period</th><th>Charges</th><th>Total</th><th>Billing date</th><th>Status</th><th class="text-end pe-3">Action</th></tr></thead>
             <tbody>
             @foreach (var bill in bills)
             {
@@ -42,10 +42,9 @@
                     <td class="ps-3"><strong>@(new DateTime(bill.Year, bill.Month, 1).ToString("MMMM yyyy"))</strong><div class="small text-muted">Residence bill</div></td>
                     <td><div>Rent @bill.RentAmount.ToString("C")</div><div class="small text-muted">Utilities @((bill.WaterAmount + bill.ElectricityAmount).ToString("C")) · Vehicle @((bill.ParkingAmount + bill.AdditionalVehicleAmount).ToString("C"))</div></td>
                     <td class="fw-bold">@bill.TotalAmount.ToString("C")</td>
-                    <td><div>@bill.DueDate.ToString("dd MMM yyyy")</div><div class="small text-muted">Window @bill.PaymentWindowStart.ToString("dd MMM")–@bill.DueDate.ToString("dd MMM")</div></td>
+                    <td><div>@bill.DueDate.ToString("dd MMM yyyy")</div><div class="small text-muted">Payment available whenever you are ready</div></td>
                     <td>
                         @if (bill.Status == BricksAndBooks.Models.BillStatus.Paid) { <span class="badge bg-success"><i class="fa-solid fa-check me-1"></i>Verified paid</span> }
-                        else if (bill.IsOverdue) { <span class="badge bg-danger"><i class="fa-solid fa-triangle-exclamation me-1"></i>Overdue</span> }
                         else if (bill.Status == BricksAndBooks.Models.BillStatus.Cancelled) { <span class="badge bg-secondary">Cancelled</span> }
                         else { <span class="badge bg-warning"><i class="fa-solid fa-clock me-1"></i>Payment required</span> }
                     </td>

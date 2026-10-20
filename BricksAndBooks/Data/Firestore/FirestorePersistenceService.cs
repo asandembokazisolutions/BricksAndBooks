@@ -32,6 +32,7 @@ public sealed class FirestorePersistenceService
         [typeof(Occupancy)] = "occupancies",
         [typeof(Payment)] = "payments",
         [typeof(PaymentAllocation)] = "paymentAllocations",
+        [typeof(SavedPaymentCard)] = "savedPaymentCards",
         // Internal workflow records for users who request a password reset from the login page.
         [typeof(PasswordResetRequest)] = "passwordResetRequests",
         [typeof(Review)] = "reviews",
@@ -135,7 +136,7 @@ public sealed class FirestorePersistenceService
         {
             ["appName"] = "Bricks And Books",
             ["schemaVersion"] = 3,
-            ["supportedRoles"] = new[] { "student", "staff", "financialOfficer", "admin" },
+            ["supportedRoles"] = new[] { "student", "staff", "maintenanceWorker", "financialOfficer", "admin" },
             ["updatedAt"] = timestamp
         }, SetOptions.MergeAll, cancellationToken);
 
@@ -197,7 +198,9 @@ public sealed class FirestorePersistenceService
 
     private static string GetPrimaryRole(ApplicationUser user) => user.IsAdmin
         ? "admin"
-        : user.IsFinancialOfficer
+        : user.IsMaintenanceWorker
+            ? "maintenanceWorker"
+            : user.IsFinancialOfficer
             ? "financialOfficer"
             : user.IsStaff
                 ? "staff"

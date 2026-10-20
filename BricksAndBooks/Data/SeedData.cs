@@ -19,7 +19,7 @@ namespace BricksAndBooks.Data
             // Firestore owns durable storage. The short-lived EF compatibility cache has no SQL schema or migrations.
             context.Database.EnsureCreated();
 
-            string[] roleNames = { "Admin", "FinancialOfficer", "Student", "Staff" };
+            string[] roleNames = { "Admin", "FinancialOfficer", "Student", "Staff", "MaintenanceWorker" };
             foreach (var roleName in roleNames)
             {
                 if (!roleManager.RoleExistsAsync(roleName).GetAwaiter().GetResult())
@@ -30,17 +30,25 @@ namespace BricksAndBooks.Data
 
             SeedUser(userManager, AdministratorUserId, "admin@bricksandbooks.com", "Admin", "User", "Admin@123", "Admin", isAdmin: true, isFinancialOfficer: false);
             SeedUser(userManager, FinancialOfficerUserId, "finance@bricksandbooks.com", "Financial", "Officer", "Finance@123", "FinancialOfficer", isAdmin: false, isFinancialOfficer: true);
+            SeedMaintenanceSpecialists(userManager);
 
-            if (!context.Tariffs.Any())
+            var existingWaterRate = context.Tariffs.FirstOrDefault(tariff => tariff.Type == TariffType.Water && tariff.EffectiveTo == null);
+            var existingElectricityRate = context.Tariffs.FirstOrDefault(tariff => tariff.Type == TariffType.Electricity && tariff.EffectiveTo == null);
+            var existingParkingRate = context.Tariffs.FirstOrDefault(tariff => tariff.Type == TariffType.Parking && tariff.EffectiveTo == null);
+            var existingAdditionalVehicleRate = context.Tariffs.FirstOrDefault(tariff => tariff.Type == TariffType.AdditionalVehicle && tariff.EffectiveTo == null);
+            if (existingWaterRate != null) { existingWaterRate.Amount = 0.30m; existingWaterRate.Description = "Water rate per litre"; }
+            if (existingElectricityRate != null) { existingElectricityRate.Amount = 0.47m; existingElectricityRate.Description = "Electricity rate per kWh"; }
+            if (existingParkingRate != null) { existingParkingRate.Amount = 100.00m; existingParkingRate.Description = "Monthly charge for the second vehicle; the first vehicle is free"; }
+            if (existingAdditionalVehicleRate != null) { existingAdditionalVehicleRate.Amount = 100.00m; existingAdditionalVehicleRate.Description = "Monthly charge for each vehicle after the second"; }
+            if (existingWaterRate == null) context.Tariffs.Add(new Tariff { Type = TariffType.Water, Amount = 0.30m, Description = "Water rate per litre" });
+            if (existingElectricityRate == null) context.Tariffs.Add(new Tariff { Type = TariffType.Electricity, Amount = 0.47m, Description = "Electricity rate per kWh" });
+            if (existingParkingRate == null) context.Tariffs.Add(new Tariff { Type = TariffType.Parking, Amount = 100.00m, Description = "Monthly charge for the second vehicle; the first vehicle is free" });
+            if (existingAdditionalVehicleRate == null) context.Tariffs.Add(new Tariff { Type = TariffType.AdditionalVehicle, Amount = 100.00m, Description = "Monthly charge for each vehicle after the second" });
+            if (!context.Tariffs.Any(tariff => tariff.Type == TariffType.Rent))
             {
-                context.Tariffs.AddRange(
-                    new Tariff { Type = TariffType.Rent, Amount = 500.00m, Description = "Monthly rent for a standard unit" },
-                    new Tariff { Type = TariffType.Water, Amount = 20.00m, Description = "Monthly water charge per unit" },
-                    new Tariff { Type = TariffType.Electricity, Amount = 30.00m, Description = "Monthly electricity charge per unit" },
-                    new Tariff { Type = TariffType.Parking, Amount = 15.00m, Description = "Monthly parking charge per vehicle" },
-                    new Tariff { Type = TariffType.AdditionalVehicle, Amount = 10.00m, Description = "Monthly charge for each additional vehicle beyond the first" });
-                context.SaveChanges();
+                context.Tariffs.Add(new Tariff { Type = TariffType.Rent, Amount = 500.00m, Description = "Monthly rent for a standard unit" });
             }
+            if (existingWaterRate != null || existingElectricityRate != null || existingParkingRate != null || existingAdditionalVehicleRate != null || context.ChangeTracker.HasChanges()) context.SaveChanges();
 
             RemoveConfirmedTestBill(context);
             RemoveConfirmedTestPayment(context);
@@ -165,6 +173,55 @@ namespace BricksAndBooks.Data
             if (!userManager.IsInRoleAsync(user, role).GetAwaiter().GetResult())
             {
                 userManager.AddToRoleAsync(user, role).GetAwaiter().GetResult();
+            }
+        }
+
+        private static void SeedMaintenanceSpecialists(UserManager<ApplicationUser> userManager)
+        {
+            var specialists = new[]
+            {
+                new { Id = "00000000-0000-0000-0000-000000000101", Email = "electrical@bricksandbooks.com", FirstName = "Lebo", LastName = "Mokoena", Password = "Electrical@123", Specialty = MaintenanceCategory.Electrical },
+                new { Id = "00000000-0000-0000-0000-000000000102", Email = "plumbing@bricksandbooks.com", FirstName = "Thabo", LastName = "Ndlovu", Password = "Plumbing@123", Specialty = MaintenanceCategory.Plumbing },
+                new { Id = "00000000-0000-0000-0000-000000000103", Email = "hvac@bricksandbooks.com", FirstName = "Mpho", LastName = "Dlamini", Password = "Hvac@123", Specialty = MaintenanceCategory.HVAC },
+                new { Id = "00000000-0000-0000-0000-000000000104", Email = "structural@bricksandbooks.com", FirstName = "Anele", LastName = "Jacobs", Password = "Structural@123", Specialty = MaintenanceCategory.Structural },
+                new { Id = "00000000-0000-0000-0000-000000000105", Email = "appliances@bricksandbooks.com", FirstName = "Zinhle", LastName = "Khumalo", Password = "Appliance@123", Specialty = MaintenanceCategory.Appliance },
+                new { Id = "00000000-0000-0000-0000-000000000106", Email = "general-maintenance@bricksandbooks.com", FirstName = "Siyabonga", LastName = "Maseko", Password = "General@123", Specialty = MaintenanceCategory.Other }
+            };
+
+            foreach (var specialist in specialists)
+            {
+                var user = userManager.FindByEmailAsync(specialist.Email).GetAwaiter().GetResult();
+                if (user == null)
+                {
+                    user = new ApplicationUser
+                    {
+                        Id = specialist.Id,
+                        UserName = specialist.Email,
+                        Email = specialist.Email,
+                        FirstName = specialist.FirstName,
+                        LastName = specialist.LastName,
+                        IsMaintenanceWorker = true,
+                        MaintenanceSpecialty = specialist.Specialty,
+                        EmailConfirmed = true
+                    };
+                    var result = userManager.CreateAsync(user, specialist.Password).GetAwaiter().GetResult();
+                    if (!result.Succeeded)
+                    {
+                        throw new InvalidOperationException($"Unable to seed {specialist.Specialty} maintenance specialist: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+                    }
+                }
+
+                if (!user.IsMaintenanceWorker || user.MaintenanceSpecialty != specialist.Specialty)
+                {
+                    user.IsMaintenanceWorker = true;
+                    user.MaintenanceSpecialty = specialist.Specialty;
+                    userManager.UpdateAsync(user).GetAwaiter().GetResult();
+                }
+
+                if (!userManager.IsInRoleAsync(user, "MaintenanceWorker").GetAwaiter().GetResult())
+                {
+                    userManager.AddToRoleAsync(user, "MaintenanceWorker").GetAwaiter().GetResult();
+                }
             }
         }
     }

@@ -199,3 +199,45 @@ const readValue = (object, ...keys) => {
         element.textContent = minutes < 1 ? 'Updated just now' : minutes < 60 ? `Updated ${minutes} minute(s) ago` : minutes < 1440 ? `Updated ${Math.floor(minutes / 60)} hour(s) ago` : `Updated ${Math.floor(minutes / 1440)} day(s) ago`;
     });
 })();
+
+// Password visibility controls: every password field gets an accessible eye button.
+(() => {
+    const setupPasswordToggle = (input) => {
+        if (!input || input.dataset.passwordToggleReady === 'true') return;
+        input.dataset.passwordToggleReady = 'true';
+        const existingGroup = input.closest('.input-group');
+        let container = existingGroup;
+        if (!container) {
+            container = document.createElement('div');
+            container.className = 'password-field';
+            input.parentNode.insertBefore(container, input);
+            container.appendChild(input);
+        } else {
+            container.classList.add('password-input-group');
+        }
+        const toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'password-toggle';
+        toggle.setAttribute('aria-label', 'Show password');
+        toggle.setAttribute('aria-pressed', 'false');
+        toggle.innerHTML = '<i class="fa-regular fa-eye" aria-hidden="true"></i>';
+        container.appendChild(toggle);
+        toggle.addEventListener('click', () => {
+            const showing = input.type === 'text';
+            input.type = showing ? 'password' : 'text';
+            toggle.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+            toggle.setAttribute('aria-pressed', String(!showing));
+            toggle.innerHTML = showing
+                ? '<i class="fa-regular fa-eye" aria-hidden="true"></i>'
+                : '<i class="fa-regular fa-eye-slash" aria-hidden="true"></i>';
+        });
+    };
+    const initializePasswordToggles = (root = document) => {
+        root.querySelectorAll('input[type="password"]').forEach(setupPasswordToggle);
+    };
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => initializePasswordToggles(), { once: true });
+    } else {
+        initializePasswordToggles();
+    }
+})();

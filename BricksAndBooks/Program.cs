@@ -40,11 +40,13 @@ builder.Services.AddSingleton(_ =>
     {
         ProjectId = firebaseProjectId,
         DatabaseId = firebaseDatabaseId,
-        GrpcAdapter = grpcAdapter
+        GrpcAdapter = grpcAdapter,
+        EmulatorDetection = Google.Api.Gax.EmulatorDetection.EmulatorOrProduction
     }.Build();
 });
 builder.Services.AddSingleton<FirestorePersistenceService>();
 builder.Services.AddSingleton<FirestoreSaveChangesInterceptor>();
+builder.Services.AddSingleton<ApiSessionService>();
 
 // The existing MVC application and ASP.NET Identity use DbContext extensively. The in-memory
 // provider retains those code paths, while FirestorePersistenceService makes Firestore the only
@@ -62,6 +64,10 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 });
 
 builder.Services.AddControllersWithViews();
+builder.Services.AddCors(options => options.AddPolicy("MobileApi", policy => policy
+    .AllowAnyOrigin()
+    .AllowAnyHeader()
+    .AllowAnyMethod()));
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddEntityFrameworkStores<AppDbContext>()
@@ -128,11 +134,15 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+app.UseMiddleware<NativeScreenMiddleware>();
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
+app.UseCors("MobileApi");
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapControllers();
 
 app.MapControllerRoute(
     name: "default",

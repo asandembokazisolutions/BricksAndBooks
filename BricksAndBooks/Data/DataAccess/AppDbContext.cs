@@ -18,6 +18,7 @@ namespace BricksAndBooks.Data.DataAccess
         public DbSet<Bill> Bills { get; set; }
         public DbSet<Payment> Payments { get; set; }
         public DbSet<PaymentAllocation> PaymentAllocations { get; set; }
+        public DbSet<SavedPaymentCard> SavedPaymentCards { get; set; }
         public DbSet<MaintenanceRequest> MaintenanceRequests { get; set; }
         public DbSet<ChatMessage> ChatMessages { get; set; }
         public DbSet<Notification> Notifications { get; set; }

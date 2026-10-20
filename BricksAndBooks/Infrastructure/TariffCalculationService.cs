@@ -19,7 +19,7 @@ namespace BricksAndBooks.Infrastructure
 
         /// <summary>
         /// Calculates and creates bills for active occupancies for a given month and year.
-        /// The payment window starts on the 30th of the previous month and closes on the first day of the bill month.
+        /// Bills are generated for the selected billing month and may be paid whenever the customer is ready.
         /// </summary>
         public void CalculateBills(int year, int month)
         {
@@ -124,10 +124,11 @@ namespace BricksAndBooks.Infrastructure
                 Year = year,
                 Month = month,
                 RentAmount = tariffs.Rent,
-                WaterAmount = tariffs.Water,
-                ElectricityAmount = tariffs.Electricity,
+                // Utility tariff amounts are rates per selected unit/litre, not flat charges.
+                WaterAmount = 0m,
+                ElectricityAmount = 0m,
                 Status = BillStatus.Pending,
-                // Bills are payable on the preceding month's 30th and 31st and on this date.
+                // Keep the billing date for statement history; there is no restricted payment window.
                 DueDate = new DateTime(year, month, 1),
                 UpdatedAt = calculatedAt
             };
@@ -139,10 +140,11 @@ namespace BricksAndBooks.Infrastructure
         private void ApplyVehicleCharges(Bill bill, string userId, TariffRates tariffs)
         {
             var vehicleCount = _repositoryWrapper.Vehicle.FindAll().Count(vehicle => vehicle.UserId == userId);
-            bill.ParkingAmount = vehicleCount > 0 ? tariffs.Parking : 0;
-            bill.AdditionalVehicleAmount = vehicleCount > 1
-                ? (vehicleCount - 1) * tariffs.AdditionalVehicle
-                : 0;
+            // The first registered vehicle is free. Vehicle #2 uses the parking tariff,
+            // and every vehicle after #2 uses the additional-vehicle tariff.
+            var chargeableVehicles = Math.Max(0, vehicleCount - 1);
+            bill.ParkingAmount = chargeableVehicles > 0 ? tariffs.Parking : 0m;
+            bill.AdditionalVehicleAmount = Math.Max(0, chargeableVehicles - 1) * tariffs.AdditionalVehicle;
         }
 
         private void RemoveDuplicateBills()
@@ -168,6 +170,14 @@ namespace BricksAndBooks.Infrastructure
             if (duplicateGroups.Any()) _context.SaveChanges();
         }
 
+        public decimal GetCurrentRate(TariffType type)
+        {
+            var now = DateTime.UtcNow;
+            return _repositoryWrapper.Tariff.FindByCondition(tariff => tariff.Type == type
+                && tariff.EffectiveFrom <= now
+                && (tariff.EffectiveTo == null || tariff.EffectiveTo >= now))
+                .Select(tariff => (decimal?)tariff.Amount).FirstOrDefault() ?? 0m;
+        }
         private TariffRates GetActiveTariffs(DateTime asOf)
         {
             decimal GetTariff(TariffType type) => _repositoryWrapper.Tariff

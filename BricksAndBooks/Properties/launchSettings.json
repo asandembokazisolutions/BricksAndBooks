@@ -16,7 +16,7 @@
       "applicationUrl": "http://localhost:5163",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "GOOGLE_APPLICATION_CREDENTIALS": "E:\\FinalYearModules\\2nd Sem\\CSIQ3784-Project\\Final Version\\Firebase\\BnB_Cred.json"
+        "GOOGLE_APPLICATION_CREDENTIALS": "G:\\FinalYearModules\\2nd Sem\\CSIQ3784-Project\\Final Version\\Firebase\\BnB_Cred.json"
       }
     },
     "https": {
@@ -26,7 +26,7 @@
       "applicationUrl": "https://localhost:7150;http://localhost:5163",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "GOOGLE_APPLICATION_CREDENTIALS": "E:\\FinalYearModules\\2nd Sem\\CSIQ3784-Project\\Final Version\\Firebase\\BnB_Cred.json"
+        "GOOGLE_APPLICATION_CREDENTIALS": "G:\\FinalYearModules\\2nd Sem\\CSIQ3784-Project\\Final Version\\Firebase\\BnB_Cred.json"
       }
     },
     "IIS Express": {
@@ -34,7 +34,7 @@
       "launchBrowser": true,
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "GOOGLE_APPLICATION_CREDENTIALS": "E:\\FinalYearModules\\2nd Sem\\CSIQ3784-Project\\Final Version\\Firebase\\BnB_Cred.json"
+        "GOOGLE_APPLICATION_CREDENTIALS": "G:\\FinalYearModules\\2nd Sem\\CSIQ3784-Project\\Final Version\\Firebase\\BnB_Cred.json"
       }
     }
   }

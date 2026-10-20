@@ -11,6 +11,8 @@ namespace BricksAndBooks.Models
         public string? EmployeeNumber { get; set; } // for staff
         public bool IsStudent { get; set; }
         public bool IsStaff { get; set; }
+        public bool IsMaintenanceWorker { get; set; }
+        public MaintenanceCategory? MaintenanceSpecialty { get; set; }
         public bool IsFinancialOfficer { get; set; }
         public bool IsAdmin { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
