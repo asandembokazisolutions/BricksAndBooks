@@ -19,13 +19,13 @@
     <div class="auth-form-panel">
         <span class="eyebrow">Secure account access</span>
         <h1 class="mt-2 mb-2">Welcome back</h1>
-        <p class="text-muted mb-4">Use your University of the Free State email address to sign in.</p>
+        <p class="text-muted mb-4">Use the app login address generated from your student or employee number.</p>
         <form asp-action="Login" method="post" novalidate>
             @Html.AntiForgeryToken()
             <div asp-validation-summary="All" class="text-danger small mb-3"></div>
             <div class="mb-3">
-                <label asp-for="Email" class="form-label">University email</label>
-                <div class="input-group"><span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-regular fa-envelope"></i></span><input asp-for="Email" class="form-control border-start-0" autocomplete="email" placeholder="name@ufs.ac.za" /></div>
+                <label asp-for="Email" class="form-label">Generated app login address</label>
+                <div class="input-group"><span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-regular fa-envelope"></i></span><input asp-for="Email" class="form-control border-start-0" autocomplete="username" placeholder="studentnumber@ufs4life.ac.za or employeenumber@ufs.ac.za" /></div>
                 <span asp-validation-for="Email" class="text-danger small"></span>
             </div>
             <div class="mb-3">

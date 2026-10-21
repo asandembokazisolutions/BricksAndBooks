@@ -150,7 +150,7 @@ namespace BricksAndBooks.Controllers
             }
 
             if (!IsUniversityEmail(email))
-                ModelState.AddModelError(nameof(email), "Use an official University of the Free State email address ending in @ufs.ac.za.");
+                ModelState.AddModelError(nameof(email), "Use a University of the Free State address ending in @ufs4life.ac.za or @ufs.ac.za.");
             if (user.IsStudent && string.IsNullOrWhiteSpace(studentNumber))
                 ModelState.AddModelError(nameof(studentNumber), "Student number is required for a student account.");
             if (user.IsStaff && string.IsNullOrWhiteSpace(employeeNumber))
@@ -295,7 +295,7 @@ namespace BricksAndBooks.Controllers
 
         private void ValidateNewUser(ApplicationUser user, string password, string confirmPassword)
         {
-            if (!IsUniversityEmail(user.Email)) ModelState.AddModelError(nameof(user.Email), "Use an official University of the Free State email address ending in @ufs.ac.za.");
+            if (!IsUniversityEmail(user.Email)) ModelState.AddModelError(nameof(user.Email), "Use a University of the Free State address ending in @ufs4life.ac.za or @ufs.ac.za.");
             if (user.IsStudent == user.IsStaff) ModelState.AddModelError(string.Empty, "Select exactly one account type: Student or Staff.");
             else if (user.IsStudent && string.IsNullOrWhiteSpace(user.StudentNumber)) ModelState.AddModelError(nameof(user.StudentNumber), "Student number is required for a student account.");
             else if (user.IsStaff && string.IsNullOrWhiteSpace(user.EmployeeNumber)) ModelState.AddModelError(nameof(user.EmployeeNumber), "Employee number is required for a staff account.");
@@ -313,7 +313,9 @@ namespace BricksAndBooks.Controllers
             if (user.IsAdmin) await _userManager.AddToRoleAsync(user, "Admin");
         }
 
-        private static bool IsUniversityEmail(string? email) => !string.IsNullOrWhiteSpace(email) && email.Trim().EndsWith("@ufs.ac.za", StringComparison.OrdinalIgnoreCase);
+        private static bool IsUniversityEmail(string? email) => !string.IsNullOrWhiteSpace(email)
+            && (email.Trim().EndsWith("@ufs4life.ac.za", StringComparison.OrdinalIgnoreCase)
+                || email.Trim().EndsWith("@ufs.ac.za", StringComparison.OrdinalIgnoreCase));
 
         private void AddIdentityErrors(IdentityResult result)
         {

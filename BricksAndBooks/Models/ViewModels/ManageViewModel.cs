@@ -14,6 +14,9 @@ namespace BricksAndBooks.Models.ViewModels
         [EmailAddress]
         public string Email { get; set; }
 
+        [Display(Name = "Personal contact email")]
+        public string PersonalEmail { get; set; }
+
         [Display(Name = "Phone Number")]
         [Phone]
         public string PhoneNumber { get; set; }

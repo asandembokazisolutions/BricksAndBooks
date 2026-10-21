@@ -182,6 +182,7 @@ public sealed class FirestorePersistenceService
         return new Dictionary<string, object>(StringComparer.Ordinal)
         {
             ["email"] = user.Email ?? string.Empty,
+            ["personalEmail"] = user.PersonalEmail ?? string.Empty,
             ["userName"] = user.UserName ?? string.Empty,
             ["firstName"] = user.FirstName ?? string.Empty,
             ["lastName"] = user.LastName ?? string.Empty,

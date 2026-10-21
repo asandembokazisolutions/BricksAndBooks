@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using BricksAndBooks.Data;
 using BricksAndBooks.Models;
 using BricksAndBooks.Models.ViewModels;
@@ -81,7 +82,9 @@ namespace BricksAndBooks.Controllers
                 return View(model);
             }
 
-            var user = await _userManager.FindByEmailAsync(model.Email);
+            var recoveryAddress = model.Email.Trim().ToLowerInvariant();
+            var user = await _userManager.FindByEmailAsync(recoveryAddress)
+                ?? await _userManager.Users.FirstOrDefaultAsync(candidate => candidate.PersonalEmail == recoveryAddress);
             if (user != null)
             {
                 var alreadyPending = _repositoryWrapper.PasswordResetRequest
@@ -104,7 +107,7 @@ namespace BricksAndBooks.Controllers
                         _notificationService.CreateActivityNotification(
                             reviewer.Id,
                             "Password reset requested",
-                            $"{user.FirstName} {user.LastName} ({user.Email}) can't sign in and requested a password reset.",
+                            $"{user.FirstName} {user.LastName} ({user.PersonalEmail ?? user.Email}) can't sign in and requested a password reset.",
                             "/Account/PasswordResetRequests");
                     }
                 }
@@ -217,7 +220,8 @@ namespace BricksAndBooks.Controllers
             ViewData["ReturnUrl"] = returnUrl;
             returnUrl ??= Url.Content("~/");
 
-            // A personal email is collected for account access and residence communication.
+            // The personal email is retained as the contact and recovery address; the generated
+            // UFS-style address below is the actual Identity login.
             model.Email = model.Email?.Trim().ToLowerInvariant() ?? string.Empty;
 
             // Exactly one applicant type is required. The matching identifier is
@@ -229,26 +233,32 @@ namespace BricksAndBooks.Controllers
             else if (model.IsStudent)
             {
                 model.EmployeeNumber = null;
-                if (string.IsNullOrWhiteSpace(model.StudentNumber))
+                model.StudentNumber = model.StudentNumber?.Trim();
+                if (!UniversityAccountAddress.IsValidStudentNumber(model.StudentNumber))
                 {
-                    ModelState.AddModelError("StudentNumber", "Student number is required for students.");
+                    ModelState.AddModelError("StudentNumber", "Student number must contain exactly 10 digits.");
                 }
             }
             else
             {
                 model.StudentNumber = null;
-                if (string.IsNullOrWhiteSpace(model.EmployeeNumber))
+                model.EmployeeNumber = model.EmployeeNumber?.Trim();
+                if (!UniversityAccountAddress.IsValidEmployeeNumber(model.EmployeeNumber))
                 {
-                    ModelState.AddModelError("EmployeeNumber", "Employee number is required for staff.");
+                    ModelState.AddModelError("EmployeeNumber", "Employee number must contain exactly 6 digits.");
                 }
             }
 
             if (ModelState.IsValid)
             {
+                var loginAddress = model.IsStudent
+                    ? UniversityAccountAddress.ForStudent(model.StudentNumber!)
+                    : UniversityAccountAddress.ForStaff(model.EmployeeNumber!);
                 var user = new ApplicationUser
                 {
-                    UserName = model.Email,
-                    Email = model.Email,
+                    UserName = loginAddress,
+                    Email = loginAddress,
+                    PersonalEmail = model.Email,
                     FirstName = model.FirstName,
                     LastName = model.LastName,
                     StudentNumber = model.StudentNumber,
@@ -271,6 +281,7 @@ namespace BricksAndBooks.Controllers
                     // Privileged roles are assigned only by an administrator through User management.
                     _notificationService.CreateActivityNotification(user.Id, "Account created", "Your Bricks And Books account has been created successfully.", "/Account/Manage");
                     _notificationService.CreateRoleActivityNotification("Admin", "New customer registration", $"{user.FirstName} {user.LastName} registered a new {((user.IsStudent) ? "Student" : "Staff")} account.", $"/User/Details/{user.Id}");
+                    TempData["StatusMessage"] = $"Your account login address is {loginAddress}. Use this address to sign in; your personal email remains your contact and recovery address. This app address does not create a UFS mailbox.";
                     await _signInManager.SignInAsync(user, isPersistent: false);
                     return LocalRedirect(returnUrl);
                 }
@@ -299,6 +310,7 @@ namespace BricksAndBooks.Controllers
                 FirstName = user.FirstName,
                 LastName = user.LastName,
                 Email = user.Email,
+                PersonalEmail = user.PersonalEmail,
                 PhoneNumber = user.PhoneNumber,
                 IsStudent = await _userManager.IsInRoleAsync(user, "Student"),
                 IsStaff = await _userManager.IsInRoleAsync(user, "Staff"),
@@ -320,8 +332,10 @@ namespace BricksAndBooks.Controllers
                 return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
             }
 
-            // University email is assigned at registration and is not editable from this profile form.
+            // The generated app login and personal recovery email are assigned at registration
+            // and are not editable from this profile form.
             model.Email = user.Email ?? string.Empty;
+            model.PersonalEmail = user.PersonalEmail ?? string.Empty;
             if (ModelState.IsValid)
             {
                 user.FirstName = model.FirstName;

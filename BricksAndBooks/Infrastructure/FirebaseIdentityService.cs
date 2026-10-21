@@ -125,6 +125,7 @@ public sealed class FirebaseIdentityService
         {
             ["uid"] = user.Id,
             ["email"] = user.Email ?? string.Empty,
+            ["personalEmail"] = user.PersonalEmail ?? string.Empty,
             ["userName"] = user.UserName ?? string.Empty,
             ["firstName"] = user.FirstName ?? string.Empty,
             ["lastName"] = user.LastName ?? string.Empty,

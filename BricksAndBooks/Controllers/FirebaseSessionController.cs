@@ -7,6 +7,7 @@ using BricksAndBooks.Models.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace BricksAndBooks.Controllers;
 
@@ -103,7 +104,7 @@ public sealed class FirebaseSessionController : ControllerBase
         var password = RequiredText(fields, "password");
         var model = new RegisterViewModel
         {
-            Email = RequiredText(fields, "email"),
+            Email = OptionalText(fields, "personalEmail") ?? RequiredText(fields, "email"),
             FirstName = RequiredText(fields, "firstName"),
             LastName = RequiredText(fields, "lastName"),
             Password = password,
@@ -126,17 +127,19 @@ public sealed class FirebaseSessionController : ControllerBase
         if (model.IsStudent)
         {
             model.EmployeeNumber = null;
-            if (string.IsNullOrWhiteSpace(model.StudentNumber))
+            model.StudentNumber = model.StudentNumber?.Trim();
+            if (!UniversityAccountAddress.IsValidStudentNumber(model.StudentNumber))
             {
-                return BadRequest(new { message = "Student number is required for students." });
+                return BadRequest(new { message = "Student number must contain exactly 10 digits." });
             }
         }
         else
         {
             model.StudentNumber = null;
-            if (string.IsNullOrWhiteSpace(model.EmployeeNumber))
+            model.EmployeeNumber = model.EmployeeNumber?.Trim();
+            if (!UniversityAccountAddress.IsValidEmployeeNumber(model.EmployeeNumber))
             {
-                return BadRequest(new { message = "Employee number is required for staff." });
+                return BadRequest(new { message = "Employee number must contain exactly 6 digits." });
             }
         }
 
@@ -145,10 +148,14 @@ public sealed class FirebaseSessionController : ControllerBase
             return BadRequest(new { message = validationMessage });
         }
 
+        var loginAddress = model.IsStudent
+            ? UniversityAccountAddress.ForStudent(model.StudentNumber!)
+            : UniversityAccountAddress.ForStaff(model.EmployeeNumber!);
         var user = new ApplicationUser
         {
-            UserName = model.Email,
-            Email = model.Email,
+            UserName = loginAddress,
+            Email = loginAddress,
+            PersonalEmail = model.Email,
             FirstName = model.FirstName,
             LastName = model.LastName,
             StudentNumber = model.StudentNumber,
@@ -198,7 +205,9 @@ public sealed class FirebaseSessionController : ControllerBase
         // Keep the original non-enumerating workflow: an identical confirmation is returned
         // whether an account exists, while an existing account gets one pending request and the
         // authorized reviewers are notified.
-        var user = await _userManager.FindByEmailAsync(model.Email);
+        var recoveryAddress = model.Email.Trim().ToLowerInvariant();
+        var user = await _userManager.FindByEmailAsync(recoveryAddress)
+            ?? await _userManager.Users.FirstOrDefaultAsync(candidate => candidate.PersonalEmail == recoveryAddress);
         if (user is not null)
         {
             var alreadyPending = _repositoryWrapper.PasswordResetRequest
@@ -221,7 +230,7 @@ public sealed class FirebaseSessionController : ControllerBase
                     _notificationService.CreateActivityNotification(
                         reviewer.Id,
                         "Password reset requested",
-                        $"{user.FirstName} {user.LastName} ({user.Email}) can't sign in and requested a password reset.",
+                        $"{user.FirstName} {user.LastName} ({user.PersonalEmail ?? user.Email}) can't sign in and requested a password reset.",
                         "/Account/PasswordResetRequests");
                 }
             }

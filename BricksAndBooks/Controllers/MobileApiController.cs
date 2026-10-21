@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.ComponentModel.DataAnnotations;
 using BricksAndBooks.Data.DataAccess;
 using BricksAndBooks.Infrastructure;
 using BricksAndBooks.Models;
@@ -41,7 +42,21 @@ public class MobileApiController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.FirstName) || string.IsNullOrWhiteSpace(request.LastName))
             return BadRequest(new { message = "Email, first name, and last name are required." });
-        var user = new ApplicationUser { UserName = request.Email.Trim(), Email = request.Email.Trim(), FirstName = request.FirstName.Trim(), LastName = request.LastName.Trim(), StudentNumber = request.StudentNumber?.Trim(), EmployeeNumber = request.EmployeeNumber?.Trim(), IsStudent = request.IsStudent, IsStaff = request.IsStaff };
+        if (request.IsStudent == request.IsStaff)
+            return BadRequest(new { message = "Select exactly one account type: student or staff." });
+        var studentNumber = request.IsStudent ? request.StudentNumber?.Trim() : null;
+        var employeeNumber = request.IsStaff ? request.EmployeeNumber?.Trim() : null;
+        if (request.IsStudent && !UniversityAccountAddress.IsValidStudentNumber(studentNumber))
+            return BadRequest(new { message = "Student number must contain exactly 10 digits." });
+        if (request.IsStaff && !UniversityAccountAddress.IsValidEmployeeNumber(employeeNumber))
+            return BadRequest(new { message = "Employee number must contain exactly 6 digits." });
+        var personalEmail = request.Email.Trim().ToLowerInvariant();
+        if (personalEmail.Length > 150 || !new EmailAddressAttribute().IsValid(personalEmail))
+            return BadRequest(new { message = "Enter a valid personal contact email address." });
+        var loginAddress = request.IsStudent
+            ? UniversityAccountAddress.ForStudent(studentNumber!)
+            : UniversityAccountAddress.ForStaff(employeeNumber!);
+        var user = new ApplicationUser { UserName = loginAddress, Email = loginAddress, PersonalEmail = personalEmail, FirstName = request.FirstName.Trim(), LastName = request.LastName.Trim(), StudentNumber = studentNumber, EmployeeNumber = employeeNumber, IsStudent = request.IsStudent, IsStaff = request.IsStaff };
         var result = await _users.CreateAsync(user, request.Password ?? string.Empty);
         if (!result.Succeeded) return BadRequest(new { message = string.Join(" ", result.Errors.Select(error => error.Description)) });
         var role = request.IsStaff ? "Staff" : "Student";
@@ -101,7 +116,7 @@ public class MobileApiController : ControllerBase
         userId = string.Empty; token = Request.Headers.Authorization.ToString().Replace("Bearer ", "", StringComparison.OrdinalIgnoreCase).Trim();
         return !string.IsNullOrWhiteSpace(token) && _sessions.TryGetUserId(token, out userId);
     }
-    private static UserDto ToUser(ApplicationUser user, IEnumerable<string> roles) => new(user.Id, user.Email ?? "", user.FirstName ?? "", user.LastName ?? "", roles.ToArray());
+    private static UserDto ToUser(ApplicationUser user, IEnumerable<string> roles) => new(user.Id, user.Email ?? "", user.PersonalEmail ?? "", user.FirstName ?? "", user.LastName ?? "", roles.ToArray());
     private static ApplicationDto ToApplication(AccommodationApplication a) => new(a.Id, a.AccommodationId, a.Accommodation?.Name ?? "Residence", a.Status.ToString(), a.ApplicantMessage, a.AssignedUnit?.UnitNumber, a.CreatedAt);
     private static BillDto ToBill(Bill b) => new(b.Id, b.Year, b.Month, b.RentAmount, b.WaterAmount, b.ElectricityAmount, b.ParkingAmount, b.AdditionalVehicleAmount, b.TotalAmount, b.Status.ToString(), b.DueDate);
 
@@ -109,7 +124,7 @@ public class MobileApiController : ControllerBase
     public record RegisterRequest(string Email, string FirstName, string LastName, string? Password, string? StudentNumber, string? EmployeeNumber, bool IsStudent, bool IsStaff);
     public record ApplicationRequest(int AccommodationId, string? Message);
     public record AuthResponse(string Token, UserDto User);
-    public record UserDto(string Id, string Email, string FirstName, string LastName, string[] Roles);
+    public record UserDto(string Id, string Email, string PersonalEmail, string FirstName, string LastName, string[] Roles);
     public record AccommodationDto(int Id, string Name, string Address, string? Description, string? ImageUrls, int UnitCount, int Capacity, int AvailableSpaces);
     public record ApplicationDto(int Id, int AccommodationId, string AccommodationName, string Status, string? Message, string? AssignedUnit, DateTime CreatedAt);
     public record BillDto(int Id, int Year, int Month, decimal Rent, decimal Water, decimal Electricity, decimal Parking, decimal AdditionalVehicle, decimal Total, string Status, DateTime DueDate);

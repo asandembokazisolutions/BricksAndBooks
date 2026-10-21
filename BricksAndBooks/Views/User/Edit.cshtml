@@ -21,7 +21,7 @@
                 <div class="row g-3">
                     <div class="col-md-6"><label asp-for="FirstName" class="form-label"></label><input asp-for="FirstName" class="form-control" /><span asp-validation-for="FirstName" class="text-danger"></span></div>
                     <div class="col-md-6"><label asp-for="LastName" class="form-label"></label><input asp-for="LastName" class="form-control" /><span asp-validation-for="LastName" class="text-danger"></span></div>
-                    <div class="col-md-6"><label asp-for="Email" class="form-label">University email</label><input asp-for="Email" type="email" class="form-control" /><div class="form-text">Only addresses ending in @@ufs.ac.za are accepted.</div><span asp-validation-for="Email" class="text-danger"></span></div>
+                    <div class="col-md-6"><label asp-for="Email" class="form-label">App login address</label><input asp-for="Email" type="email" class="form-control" /><div class="form-text">Student logins use @@ufs4life.ac.za; staff logins use @@ufs.ac.za.</div><span asp-validation-for="Email" class="text-danger"></span></div>
                     <div class="col-md-6"><label asp-for="UserName" class="form-label">Sign-in username</label><input asp-for="UserName" class="form-control" /><span asp-validation-for="UserName" class="text-danger"></span></div>
                     @if (isStudent)
                     {

@@ -43,7 +43,11 @@
                             <span class="rounded-circle bg-light border text-primary fw-semibold d-inline-flex align-items-center justify-content-center" style="width: 2.25rem; height: 2.25rem;">@initials</span>
                             <div>
                                 <div class="fw-semibold">@item.FirstName @item.LastName</div>
-                                <div class="small text-muted">@item.Email</div>
+                                <div class="small text-muted">App login: @item.Email</div>
+                                @if (!string.IsNullOrWhiteSpace(item.PersonalEmail))
+                                {
+                                    <div class="small text-muted">Contact: @item.PersonalEmail</div>
+                                }
                             </div>
                         </div>
                     </td>

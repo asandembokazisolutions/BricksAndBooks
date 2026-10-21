@@ -9,7 +9,7 @@
             <div class="card-body p-4 p-lg-5">
                 <span class="eyebrow">Bricks & Books access</span>
                 <h1 class="h2 mt-2 mb-2">Create your account</h1>
-                <p class="text-muted mb-4">Tell us how you are connected to the university and choose the email address you want us to use for residence communication.</p>
+                <p class="text-muted mb-4">Choose your student or staff account type, enter your university number, and provide a personal email for contact and recovery. Your app login address is generated from your number.</p>
                 <form asp-action="Register" method="post">
                     <div asp-validation-summary="All" class="alert alert-danger"></div>
                     <div class="mb-4">
@@ -30,22 +30,24 @@
                     <div class="registration-id-panel mb-4">
                         <div id="studentIdPanel" style="display:@(Model.IsStudent ? "block" : "none")">
                             <label asp-for="StudentNumber" class="form-label fw-semibold"></label>
-                            <input asp-for="StudentNumber" class="form-control" placeholder="Enter your student number" />
+                            <input asp-for="StudentNumber" class="form-control" placeholder="Enter your 10-digit student number" inputmode="numeric" minlength="10" maxlength="10" pattern="[0-9]{10}" autocomplete="off" />
                             <span asp-validation-for="StudentNumber" class="text-danger"></span>
-                            <small class="text-muted">Only your student number is required for a student account.</small>
+                            <small class="text-muted">Enter exactly 10 digits. Your app login will be this number followed by @@ufs4life.ac.za.</small>
                         </div>
                         <div id="staffIdPanel" style="display:@(Model.IsStaff ? "block" : "none")">
                             <label asp-for="EmployeeNumber" class="form-label fw-semibold"></label>
-                            <input asp-for="EmployeeNumber" class="form-control" placeholder="Enter your employee number" />
+                            <input asp-for="EmployeeNumber" class="form-control" placeholder="Enter your 6-digit employee number" inputmode="numeric" minlength="6" maxlength="6" pattern="[0-9]{6}" autocomplete="off" />
                             <span asp-validation-for="EmployeeNumber" class="text-danger"></span>
-                            <small class="text-muted">Only your employee number is required for a staff account.</small>
+                            <small class="text-muted">Enter exactly 6 digits. Your app login will be this number followed by @@ufs.ac.za.</small>
                         </div>
                         <div id="typeHint" class="text-muted small @(((Model?.IsStudent ?? false) || (Model?.IsStaff ?? false)) ? "d-none" : "")"><i class="fa-solid fa-circle-info me-1"></i>Select Student or Staff member above to continue.</div>
+                        <div id="generatedAddressPreview" class="small fw-semibold mt-3" aria-live="polite">Your app login address will appear here when you enter your number.</div>
+                        <div class="form-text">This is a login address inside this app; registration does not create or activate a UFS email mailbox.</div>
                     </div>
                     <div class="row g-3">
                         <div class="col-md-6"><label asp-for="FirstName" class="form-label"></label><input asp-for="FirstName" class="form-control" /><span asp-validation-for="FirstName" class="text-danger"></span></div>
                         <div class="col-md-6"><label asp-for="LastName" class="form-label"></label><input asp-for="LastName" class="form-control" /><span asp-validation-for="LastName" class="text-danger"></span></div>
-                        <div class="col-12"><label asp-for="Email" class="form-label"></label><input asp-for="Email" type="email" class="form-control" autocomplete="email" placeholder="you@example.com" /><div class="form-text">Use an email address you check regularly. This is where residence notices and account recovery messages will be sent.</div><span asp-validation-for="Email" class="text-danger"></span></div>
+                        <div class="col-12"><label asp-for="Email" class="form-label">Personal contact email</label><input asp-for="Email" type="email" class="form-control" autocomplete="email" placeholder="you@example.com" /><div class="form-text">Use an email address you check regularly. It is stored for residence contact and password-recovery requests. You will sign in with the generated address shown above.</div><span asp-validation-for="Email" class="text-danger"></span></div>
                         <div class="col-md-6"><label asp-for="Password" class="form-label"></label><input asp-for="Password" class="form-control" type="password" /><span asp-validation-for="Password" class="text-danger"></span></div>
                         <div class="col-md-6"><label asp-for="ConfirmPassword" class="form-label"></label><input asp-for="ConfirmPassword" class="form-control" type="password" /><span asp-validation-for="ConfirmPassword" class="text-danger"></span></div>
                     </div>
@@ -70,6 +72,16 @@
             const studentNumber = document.getElementById('StudentNumber');
             const employeeNumber = document.getElementById('EmployeeNumber');
             const typeHint = document.getElementById('typeHint');
+            const addressPreview = document.getElementById('generatedAddressPreview');
+            const updateAddressPreview = () => {
+                const isStudent = studentChoice.checked;
+                const number = isStudent ? studentNumber.value.trim() : employeeNumber.value.trim();
+                const expected = isStudent ? 10 : 6;
+                const domain = isStudent ? '@@ufs4life.ac.za' : '@@ufs.ac.za';
+                addressPreview.textContent = number.length === expected && new RegExp('^[0-9]{' + expected + '}$').test(number)
+                    ? 'App login address: ' + number + domain
+                    : 'Enter exactly ' + expected + ' digits to preview your app login address.';
+            };
             const setType = (type) => {
                 const isStudent = type === 'student';
                 studentFlag.value = isStudent ? 'true' : 'false';
@@ -81,9 +93,12 @@
                 typeHint.classList.add('d-none');
                 if (isStudent) employeeNumber.value = '';
                 else studentNumber.value = '';
+                updateAddressPreview();
             };
             studentChoice.addEventListener('change', () => setType('student'));
             staffChoice.addEventListener('change', () => setType('staff'));
+            studentNumber.addEventListener('input', updateAddressPreview);
+            employeeNumber.addEventListener('input', updateAddressPreview);
             if (studentChoice.checked) setType('student');
             else if (staffChoice.checked) setType('staff');
             else { studentNumber.disabled = true; employeeNumber.disabled = true; }

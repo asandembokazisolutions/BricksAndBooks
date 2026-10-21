@@ -7,6 +7,7 @@ namespace BricksAndBooks.Models
     {
         public string? FirstName { get; set; }
         public string? LastName { get; set; }
+        public string? PersonalEmail { get; set; } // contact and account-recovery address
         public string? StudentNumber { get; set; } // for students
         public string? EmployeeNumber { get; set; } // for staff
         public bool IsStudent { get; set; }
