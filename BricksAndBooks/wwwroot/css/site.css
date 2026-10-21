@@ -3340,3 +3340,46 @@ body { background: #f7f9fc; color: var(--ufs-navy); }
         grid-column: 1 / -1;
     }
 }
+
+/* Keep the footer horizontal on narrow screens; allow users to swipe across the columns. */
+@media (max-width: 900px) {
+    .institutional-footer > .institutional-footer-grid {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 28px;
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+        padding-bottom: 10px;
+        scrollbar-width: thin;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .institutional-footer > .institutional-footer-grid > .footer-brand-column {
+        flex: 0 0 210px;
+    }
+
+    .institutional-footer > .institutional-footer-grid > .footer-column {
+        flex: 0 0 160px;
+    }
+
+    .institutional-footer > .institutional-footer-grid > .footer-address {
+        flex-basis: 225px;
+    }
+
+    .institutional-footer > .footer-bottom {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .institutional-footer > .footer-bottom > span:first-child {
+        flex: 1 1 auto;
+    }
+
+    .institutional-footer > .footer-bottom > span:last-child {
+        flex: 0 0 auto;
+        white-space: nowrap;
+        text-align: right;
+    }
+}
