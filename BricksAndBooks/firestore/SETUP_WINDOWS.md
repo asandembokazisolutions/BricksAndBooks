@@ -44,11 +44,11 @@ When prompted, choose **bricks-and-books** and give it the alias `default`.
 
 ## Part 3 — Deploy the Firestore security rules and indexes
 
-The supplied files are already mapped by `firebase.json`:
+The backend-local `firebase.json` points to the canonical hybrid app rules at `../firebase/proposed-firestore.rules`; the index file remains local:
 
 ```text
 firebase.json
-firestore/firestore.rules
+../firebase/proposed-firestore.rules
 firestore/firestore.indexes.json
 ```
 
@@ -58,9 +58,9 @@ From the folder containing `firebase.json`, run:
 firebase deploy --only firestore
 ```
 
-This publishes the rules and starts building the composite indexes. In Firebase Console, open **Firestore Database → Rules** and confirm that the published rules appear. Open **Indexes** to monitor index creation; use the app only after the required indexes are enabled.
+This publishes the canonical rules and starts building the composite indexes. In Firebase Console, open **Firestore Database → Rules** and confirm that `proposed-firestore.rules` is the published policy. Open **Indexes** to monitor index creation; use the app only after the required indexes are enabled.
 
-The rules start with a secure default: people must sign in, a normal user can access only their own records, staff can manage accommodations and units, finance staff can manage bills and payments, and only administrators can manage roles and audit-log access. Test these rules in the **Rules** simulator before launching the application.
+The rules start with a secure default: public residence listings are readable, signed-in residents can read only permitted records (including published announcements), and sensitive mutations and finance/admin data remain server-only. Test these rules in the **Rules** simulator before launching the application. Do not deploy the legacy `firestore/firestore.rules` file directly; it does not match the hybrid native app contract.
 
 ## Part 4 — Create starter records in Firestore
 

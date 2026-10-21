@@ -47,12 +47,20 @@ builder.Services.AddSingleton(_ =>
 builder.Services.AddSingleton<FirestorePersistenceService>();
 builder.Services.AddSingleton<FirestoreSaveChangesInterceptor>();
 builder.Services.AddSingleton<ApiSessionService>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<FirebaseIdentityService>();
+builder.Services.AddScoped<NativeFirebaseQueries>();
+builder.Services.AddScoped<FirebaseMvcActions>();
+builder.Services.AddScoped<FirebaseCardService>();
+builder.Services.AddSingleton<Microsoft.EntityFrameworkCore.Storage.InMemoryDatabaseRoot>();
+builder.Services.AddSingleton<IFirestoreClientCacheContextFactory, FirestoreClientCacheContextFactory>();
+builder.Services.AddSingleton<FirestoreClientSyncMiddleware.FirestoreClientReceiptSync>();
 
 // The existing MVC application and ASP.NET Identity use DbContext extensively. The in-memory
 // provider retains those code paths, while FirestorePersistenceService makes Firestore the only
 // durable source of truth and reloads the cache when the app starts.
 builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
-    options.UseInMemoryDatabase("BricksAndBooksCompatibilityCache")
+    options.UseInMemoryDatabase("BricksAndBooksCompatibilityCache", serviceProvider.GetRequiredService<Microsoft.EntityFrameworkCore.Storage.InMemoryDatabaseRoot>())
         .AddInterceptors(serviceProvider.GetRequiredService<FirestoreSaveChangesInterceptor>()))
     .AddScoped<IRepositoryWrapper, RepositoryWrapper>();
 
@@ -134,12 +142,14 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseMiddleware<NativeScreenMiddleware>();
+
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 app.UseCors("MobileApi");
 app.UseAuthentication();
+app.UseMiddleware<FirebaseBearerMiddleware>();
+app.UseMiddleware<FirestoreClientSyncMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers();

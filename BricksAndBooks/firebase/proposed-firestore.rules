@@ -1,0 +1,175 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(string userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function isOwnResource() {
+      return signedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // Read receipts are the only direct client updates.  The target record, its owner,
+    // timestamps, source text, enum strings, numeric Id and all other fields stay immutable.
+    function isOwnUnreadReceipt() {
+      return isOwnResource()
+        && resource.data.isRead == false
+        && request.resource.data.isRead == true
+        && request.resource.data.readAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['isRead', 'readAt']);
+    }
+
+    function isRecipientUnreadReceipt() {
+      return signedIn()
+        && resource.data.recipientUserId == request.auth.uid
+        && resource.data.isRead == false
+        && request.resource.data.isRead == true
+        && request.resource.data.readAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['isRead', 'readAt']);
+    }
+
+    // Residence listings deliberately contain only public listing/availability information.
+    // Administrative changes, including imageUrls migrations, use the protected backend action.
+    match /accommodations/{accommodationId} {
+      allow get, list: if true;
+      allow create, update, delete: if false;
+    }
+
+    match /units/{unitId} {
+      allow get, list: if true;
+      allow create, update, delete: if false;
+    }
+
+    // This is a limited public profile projection, not an identity record.  Profiles are
+    // created and updated through legacyLogin/register/profileUpdate so Identity, roles and
+    // public projection remain consistent.  Do not expose an address-book list client-side.
+    match /users/{userId} {
+      allow get: if isSelf(userId);
+      allow list, create, update, delete: if false;
+    }
+
+    // Numeric source Ids, PascalCase statuses, application eligibility, allocation and
+    // termination transitions are protected server rules.  A client may read only its own
+    // documents; administrator review uses applicationGet/applicationReview through the backend.
+    match /accommodationApplications/{applicationId} {
+      allow get, list: if isOwnResource();
+      allow create, update, delete: if false;
+    }
+
+    // Vehicles affect parking charges and must preserve global registration-number uniqueness.
+    // Vehicle creation/edit/delete is therefore vehicleSave/vehicleDelete on the backend.
+    match /vehicles/{vehicleId} {
+      allow get, list: if isOwnResource();
+      allow create, update, delete: if false;
+    }
+
+    // A maintenance request must be checked against current occupancy and its assignment/status
+    // produces notifications, so create/update/delete stay on the protected backend.
+    match /maintenanceRequests/{maintenanceRequestId} {
+      allow get, list: if isOwnResource();
+      allow create, update, delete: if false;
+    }
+
+    // Recipients may acknowledge, but may not create, delete, retarget, forge, or alter a notice.
+    match /notifications/{notificationId} {
+      allow get, list: if isOwnResource();
+      allow update: if isOwnUnreadReceipt();
+      allow create, delete: if false;
+    }
+
+    // The source application publishes reviews immediately.  Public users can see approved
+    // reviews; an author can inspect their own record.  Review creation/moderation remains on
+    // reviewCreate/reviewApprove so numeric Ids and source policy are retained.
+    match /reviews/{reviewId} {
+      allow get: if resource.data.isApproved == true || isOwnResource();
+      allow list: if resource.data.isApproved == true || isOwnResource();
+      allow create, update, delete: if false;
+    }
+
+    // Firestore persistence stores source messages in chatMessages (not chatThreads/messages).
+    // Contacts and sends use protected chatContacts/chatThread/chatSend actions, which keep
+    // source validation and notification side effects.  Only the intended recipient may mark an
+    // existing message read; neither participant can alter text, counterpart or sentAt.
+    match /chatMessages/{messageId} {
+      allow get, list: if signedIn()
+        && (resource.data.senderUserId == request.auth.uid
+          || resource.data.recipientUserId == request.auth.uid);
+      allow update: if isRecipientUnreadReceipt();
+      allow create, delete: if false;
+    }
+
+    // Financial and allocation data are returned only by protected, ownership-filtered actions.
+    // In particular, raw bills cannot safely be filtered from userId because the persisted Bill
+    // model owns only unitId, and payment gateway response/proof fields are sensitive.
+    match /bills/{billId} {
+      allow read, write: if false;
+    }
+
+    match /payments/{paymentId} {
+      allow read, write: if false;
+    }
+
+    match /paymentAllocations/{allocationId} {
+      allow read, write: if false;
+    }
+
+    match /tariffs/{tariffId} {
+      allow read, write: if false;
+    }
+
+    match /occupancies/{occupancyId} {
+      allow read, write: if false;
+    }
+
+    // Masked-card display values, CvcSalt, CvcHash and any future payment clientSecret must
+    // never be exposed to a direct client.  Use cardsList/cardRegister/cardDelete instead.
+    match /savedPaymentCards/{cardId} {
+      allow read, write: if false;
+    }
+
+    // Identity credentials, role memberships, recovery workflow, audit data, schema/settings
+    // and announcements are server-only.  In particular, no client can change role, isAdmin,
+    // isStaff, isStudent, isFinancialOfficer, isMaintenanceWorker or maintenanceSpecialty.
+    match /_identityUsers/{userId} {
+      allow read, write: if false;
+    }
+
+    match /_identityRoles/{roleId} {
+      allow read, write: if false;
+    }
+
+    match /_identityUserRoles/{membershipId} {
+      allow read, write: if false;
+    }
+
+    match /passwordResetRequests/{requestId} {
+      allow read, write: if false;
+    }
+
+    match /auditLogs/{auditLogId} {
+      allow read, write: if false;
+    }
+
+    match /settings/{settingId} {
+      allow read, write: if false;
+    }
+
+    match /schemaMetadata/{metadataId} {
+      allow read, write: if false;
+    }
+
+    match /announcements/{announcementId} {
+      allow read, write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

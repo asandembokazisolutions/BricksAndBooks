@@ -143,7 +143,7 @@ namespace BricksAndBooks.Data.DataAccess
             // Configure MaintenanceRequest-Unit relationship (one-to-many, restrict delete)
             builder.Entity<MaintenanceRequest>()
                 .HasOne(mr => mr.Unit)
-                .WithMany()
+                .WithMany(unit => unit.MaintenanceRequests)
                 .HasForeignKey(mr => mr.UnitId)
                 .OnDelete(DeleteBehavior.Restrict); // Keep maintenance requests when unit is deleted
 
