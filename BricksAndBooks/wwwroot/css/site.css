@@ -1230,6 +1230,7 @@ button, input, select, textarea {
     }
 
     .registration-choice label {
+        display: block;
         cursor: pointer;
         padding: 16px;
         border: 1px solid #e2e8f2;
@@ -1244,6 +1245,11 @@ button, input, select, textarea {
         background: #eef5ff;
         color: #1c579d;
         box-shadow: 0 0 0 3px rgba(45,114,212,.11);
+    }
+
+    .registration-choice input:focus-visible + label {
+        outline: 3px solid #1e9b8a;
+        outline-offset: 3px;
     }
 
     .registration-choice label strong, .registration-choice label small {
@@ -3314,8 +3320,8 @@ body { background: #f7f9fc; color: var(--ufs-navy); }
 
 /* Final institutional footer layout: keep the four footer sections in one horizontal row on desktop. */
 .institutional-footer > .institutional-footer-grid {
-    display: grid;
-    grid-template-columns: minmax(220px, 1.45fr) minmax(140px, .85fr) minmax(140px, .85fr) minmax(230px, 1.1fr);
+    display: grid !important;
+    grid-template-columns: minmax(0, 2fr) minmax(130px, .9fr) minmax(150px, 1.25fr) minmax(210px, 1.05fr) !important;
     align-items: start;
     gap: clamp(28px, 5vw, 90px);
     width: 100%;
@@ -3344,8 +3350,15 @@ body { background: #f7f9fc; color: var(--ufs-navy); }
 /* Keep the footer horizontal on narrow screens; allow users to swipe across the columns. */
 @media (max-width: 900px) {
     .institutional-footer > .institutional-footer-grid {
+<<<<<<< HEAD
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        grid-template-columns: none !important;
+=======
         display: flex;
         flex-wrap: nowrap;
+>>>>>>> 5dfb2ab34d229c0128194d526a0fa05dcf277b2b
         gap: 28px;
         overflow-x: auto;
         overscroll-behavior-x: contain;
@@ -3355,11 +3368,21 @@ body { background: #f7f9fc; color: var(--ufs-navy); }
     }
 
     .institutional-footer > .institutional-footer-grid > .footer-brand-column {
+<<<<<<< HEAD
+        flex: 0 0 210px !important;
+        grid-column: auto !important;
+    }
+
+    .institutional-footer > .institutional-footer-grid > .footer-column {
+        flex: 0 0 160px !important;
+        grid-column: auto !important;
+=======
         flex: 0 0 210px;
     }
 
     .institutional-footer > .institutional-footer-grid > .footer-column {
         flex: 0 0 160px;
+>>>>>>> 5dfb2ab34d229c0128194d526a0fa05dcf277b2b
     }
 
     .institutional-footer > .institutional-footer-grid > .footer-address {

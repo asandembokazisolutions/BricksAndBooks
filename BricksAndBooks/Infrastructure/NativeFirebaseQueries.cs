@@ -82,7 +82,46 @@ public sealed class NativeFirebaseQueries
             case "residentSummary":
                 var home = await Model<HomeController>("Index") as CustomerDashboardViewModel;
                 if (home == null) return new { success = true, summary = new { outstandingBalance = 0m, residenceName = "Not allocated", unitNumber = "Awaiting allocation", unreadMessages = 0 } };
-                return new { success = true, summary = new { home.OutstandingBalance, residenceName = home.Accommodation?.Name ?? "Not allocated", unitNumber = home.Unit?.UnitNumber ?? "Awaiting allocation", home.UnreadMessages, home.UnreadNotifications }, item = Safe(home.LatestApplication), items = Safe(home.RecentBills) };
+                var latestSource = home.LatestApplication;
+                var currentUnit = home.Unit;
+                var currentAccommodation = home.Accommodation;
+                Dictionary<string, object?>? latestApplication = null;
+                if (latestSource != null)
+                {
+                    latestApplication = new Dictionary<string, object?>
+                    {
+                        ["id"] = latestSource.Id,
+                        ["status"] = latestSource.Status.ToString(),
+                        ["accommodationName"] = latestSource.Accommodation?.Name ?? "Accommodation request",
+                        ["createdAt"] = latestSource.CreatedAt
+                    };
+                }
+                var payableBill = home.RecentBills.FirstOrDefault(bill => bill.Status != BillStatus.Paid && bill.Status != BillStatus.Cancelled);
+                return new
+                {
+                    success = true,
+                    summary = new
+                    {
+                        home.OutstandingBalance,
+                        home.RentDue,
+                        home.WaterDue,
+                        home.ElectricityDue,
+                        home.ParkingDue,
+                        residenceName = currentAccommodation?.Name ?? "Not allocated",
+                        residenceAddress = currentAccommodation?.Address ?? "",
+                        unitNumber = currentUnit?.UnitNumber ?? "Awaiting allocation",
+                        occupancyType = currentUnit == null ? "" : currentUnit.OccupancyType.ToString(),
+                        home.UnreadMessages,
+                        home.UnreadNotifications
+                    },
+                    latestApplication,
+                    item = latestApplication,
+                    accommodation = Safe(currentAccommodation),
+                    unit = Safe(currentUnit),
+                    payableBill = Safe(payableBill),
+                    items = Safe(home.RecentBills),
+                    recentPayments = Safe(home.RecentPayments)
+                };
             case "report":
                 Need(finance);
                 var reportType = Text(fields, "type");

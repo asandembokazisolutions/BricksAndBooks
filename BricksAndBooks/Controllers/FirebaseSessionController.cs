@@ -183,8 +183,8 @@ public sealed class FirebaseSessionController : ControllerBase
         _notificationService.CreateActivityNotification(
             user.Id,
             "Account created",
-            "Your Bricks And Books account has been created successfully.",
-            "/Account/Manage");
+            $"Your Bricks & Books account is ready. Sign in with {loginAddress} and the password you created. Your personal email ({user.PersonalEmail}) is for contact and recovery.",
+            "/Account/Login");
         _notificationService.CreateRoleActivityNotification(
             "Admin",
             "New customer registration",

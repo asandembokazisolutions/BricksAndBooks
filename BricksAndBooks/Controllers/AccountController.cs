@@ -224,6 +224,18 @@ namespace BricksAndBooks.Controllers
             // UFS-style address below is the actual Identity login.
             model.Email = model.Email?.Trim().ToLowerInvariant() ?? string.Empty;
 
+            // Trust the bound account-type choice rather than relying on JavaScript-updated
+            // hidden flags. The radio group is submitted even when client-side scripts fail.
+            if (!string.IsNullOrWhiteSpace(model.ApplicantType))
+            {
+                model.IsStudent = string.Equals(model.ApplicantType, "student", StringComparison.OrdinalIgnoreCase);
+                model.IsStaff = string.Equals(model.ApplicantType, "staff", StringComparison.OrdinalIgnoreCase);
+                if (!model.IsStudent && !model.IsStaff)
+                {
+                    ModelState.AddModelError(nameof(model.ApplicantType), "Select Student or Staff member.");
+                }
+            }
+
             // Exactly one applicant type is required. The matching identifier is
             // validated and the other identifier is deliberately discarded.
             if (model.IsStudent == model.IsStaff)
@@ -279,9 +291,9 @@ namespace BricksAndBooks.Controllers
                         await _userManager.AddToRoleAsync(user, "Staff");
                     }
                     // Privileged roles are assigned only by an administrator through User management.
-                    _notificationService.CreateActivityNotification(user.Id, "Account created", "Your Bricks And Books account has been created successfully.", "/Account/Manage");
+                    _notificationService.CreateActivityNotification(user.Id, "Account created", $"Your Bricks & Books account is ready. Sign in with {loginAddress} and the password you created. Your personal email ({user.PersonalEmail}) is for contact and recovery.", "/Account/Login");
                     _notificationService.CreateRoleActivityNotification("Admin", "New customer registration", $"{user.FirstName} {user.LastName} registered a new {((user.IsStudent) ? "Student" : "Staff")} account.", $"/User/Details/{user.Id}");
-                    TempData["StatusMessage"] = $"Your account login address is {loginAddress}. Use this address to sign in; your personal email remains your contact and recovery address. This app address does not create a UFS mailbox.";
+                    TempData["StatusMessage"] = $"Account created. Sign in with {loginAddress} and the password you created. Your personal email remains your contact and recovery address; this app login address does not create a UFS mailbox.";
                     await _signInManager.SignInAsync(user, isPersistent: false);
                     return LocalRedirect(returnUrl);
                 }

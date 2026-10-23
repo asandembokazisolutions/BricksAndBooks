@@ -19,6 +19,9 @@ namespace BricksAndBooks.Models.ViewModels
         [Display(Name = "Personal email address")]
         public string Email { get; set; } = string.Empty;
 
+        [Display(Name = "Account type")]
+        public string? ApplicantType { get; set; }
+
         [Required]
         [StringLength(50, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 2)]
         [Display(Name = "First Name")]
